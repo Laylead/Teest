@@ -438,6 +438,33 @@
             transform: translateX(5px);
         }
 
+        /* Already Claimed Message */
+        .already-claimed {
+            text-align: center;
+            padding: 40px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .already-claimed i {
+            font-size: 50px;
+            color: var(--success);
+            margin-bottom: 20px;
+        }
+
+        .already-claimed h2 {
+            margin-bottom: 15px;
+            color: var(--dark);
+        }
+
+        .already-claimed p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+
         /* Footer */
         footer {
             background: var(--dark);
@@ -602,6 +629,53 @@
         .pulse {
             animation: pulse 2s infinite;
         }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .modal-title {
+            margin-bottom: 20px;
+            color: var(--primary);
+            text-align: center;
+        }
+
+        .modal-form .form-group {
+            margin-bottom: 20px;
+        }
+
+        .modal-form .btn {
+            width: 100%;
+        }
     </style>
 </head>
 <body>
@@ -618,7 +692,8 @@
                     <li><a href="#token">Token Info</a></li>
                     <li><a href="#countdown">Countdown</a></li>
                     <li><a href="#participate">How to Join</a></li>
-                    <li><a href="#form">Join Airdrop</a></li>
+                    <li id="joinAirdropNavItem"><a href="#form">Join Airdrop</a></li>
+                    <li><a href="#" id="loginBtn">Login</a></li>
                     <li><a href="dashboard.html" id="dashboardLink" style="display:none;">Dashboard</a></li>
                 </ul>
             </nav>
@@ -628,13 +703,28 @@
         </div>
     </header>
 
+    <!-- Login Modal -->
+    <div class="modal" id="loginModal">
+        <div class="modal-content">
+            <span class="close-modal" id="closeLoginModal">&times;</span>
+            <h2 class="modal-title">Login with Your Wallet</h2>
+            <form id="loginForm" class="modal-form">
+                <div class="form-group">
+                    <label for="loginWallet">Wallet Address</label>
+                    <input type="text" id="loginWallet" class="form-control" placeholder="Your ERC-20 wallet address" required>
+                </div>
+                <button type="submit" class="btn">Login</button>
+            </form>
+        </div>
+    </div>
+
     <!-- Hero Section -->
     <section class="hero" id="about">
         <div class="container">
             <h1>Nexus Token Airdrop</h1>
             <p>Join our exclusive airdrop campaign and get free NEX tokens! Limited time offer for early adopters of our revolutionary blockchain platform.</p>
             <div>
-                <a href="#form" class="btn pulse">Claim Your Tokens Now</a>
+                <a href="#form" class="btn pulse" id="claimBtn">Claim Your Tokens Now</a>
                 <a href="#token" class="btn btn-outline">Learn More</a>
             </div>
         </div>
@@ -726,46 +816,12 @@
         </div>
     </section>
 
-    <!-- Airdrop Form -->
+    <!-- Airdrop Form or Already Claimed Message -->
     <section class="airdrop-form" id="form">
         <div class="container">
             <h2 class="section-title">Join the Airdrop</h2>
-            <div class="form-container">
-                <form id="airdropForm">
-                    <div class="form-group">
-                        <label for="fullName">Full Name</label>
-                        <input type="text" id="fullName" class="form-control" placeholder="Your full name" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="email">Email Address</label>
-                        <input type="email" id="email" class="form-control" placeholder="Your email address" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="wallet">Wallet Address</label>
-                        <input type="text" id="wallet" class="form-control" placeholder="Your ERC-20 wallet address" required>
-                        <p class="form-note">Make sure this is the correct address as tokens cannot be recovered if sent to the wrong address.</p>
-                    </div>
-                    <div class="form-group">
-                        <label for="twitter">Twitter Username</label>
-                        <input type="text" id="twitter" class="form-control" placeholder="@yourusername" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="telegram">Telegram Username</label>
-                        <input type="text" id="telegram" class="form-control" placeholder="@yourusername" required>
-                    </div>
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="agreeTerms" required>
-                        <label for="agreeTerms">I agree to the terms and conditions and privacy policy</label>
-                    </div>
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="notRobot" required>
-                        <label for="notRobot">I'm not a robot</label>
-                    </div>
-                    <button type="submit" class="btn" style="width: 100%;">Submit & Claim Tokens</button>
-                </form>
-                <div class="dashboard-link" id="dashboardLinkContainer">
-                    <a href="dashboard.html">Go to Dashboard <i class="fas fa-arrow-right"></i></a>
-                </div>
+            <div id="airdropFormContainer">
+                <!-- This will be dynamically replaced with either the form or the "already claimed" message -->
             </div>
         </div>
     </section>
@@ -890,27 +946,200 @@
         window.addEventListener('scroll', checkSteps);
         window.addEventListener('load', checkSteps);
 
-        // Form submission
-        const airdropForm = document.getElementById('airdropForm');
-        const dashboardLinkContainer = document.getElementById('dashboardLinkContainer');
-        const dashboardLink = document.getElementById('dashboardLink');
-        
-        airdropForm.addEventListener('submit', function(e) {
+        // Store registered users in localStorage
+        if (!localStorage.getItem('airdropParticipants')) {
+            localStorage.setItem('airdropParticipants', JSON.stringify([]));
+        }
+
+        // Login Modal functionality
+        const loginModal = document.getElementById('loginModal');
+        const loginBtn = document.getElementById('loginBtn');
+        const closeLoginModal = document.getElementById('closeLoginModal');
+        const loginForm = document.getElementById('loginForm');
+
+        // Open login modal
+        loginBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            loginModal.style.display = 'flex';
+        });
+
+        // Close modal
+        closeLoginModal.addEventListener('click', () => {
+            loginModal.style.display = 'none';
+        });
+
+        // Close modal when clicking outside
+        window.addEventListener('click', (e) => {
+            if (e.target === loginModal) {
+                loginModal.style.display = 'none';
+            }
+        });
+
+        // Login form submission
+        loginForm.addEventListener('submit', (e) => {
             e.preventDefault();
             
-            // Simulate form submission
-            setTimeout(() => {
-                alert('Thank you for participating in the Nexus Token airdrop! Your submission has been received.');
-                airdropForm.reset();
+            const walletAddress = document.getElementById('loginWallet').value.trim();
+            const participants = JSON.parse(localStorage.getItem('airdropParticipants')) || [];
+            
+            // Check if wallet is registered
+            const participant = participants.find(p => p.wallet === walletAddress);
+            
+            if (participant) {
+                // Store current user in session
+                sessionStorage.setItem('currentUser', JSON.stringify(participant));
                 
-                // Show dashboard link
-                dashboardLinkContainer.style.display = 'block';
-                dashboardLink.style.display = 'inline-block';
+                // Update UI
+                loginModal.style.display = 'none';
+                document.getElementById('dashboardLink').style.display = 'inline-block';
+                loginBtn.style.display = 'none';
+                document.getElementById('joinAirdropNavItem').style.display = 'none';
                 
-                // Scroll to dashboard link
-                dashboardLinkContainer.scrollIntoView({ behavior: 'smooth' });
-            }, 1000);
+                // Show success message
+                alert('Login successful! You can now access your dashboard.');
+                
+                // Redirect to dashboard (in a real app)
+                window.location.href = 'dashboard.html';
+            } else {
+                alert('This wallet address is not registered. Please join the airdrop first.');
+            }
         });
+
+        // Check if user has already claimed airdrop
+        function checkAirdropStatus() {
+            const airdropFormContainer = document.getElementById('airdropFormContainer');
+            const participants = JSON.parse(localStorage.getItem('airdropParticipants')) || [];
+            const currentUser = JSON.parse(sessionStorage.getItem('currentUser'));
+            
+            // Check if user is logged in via session
+            if (currentUser && participants.some(p => p.wallet === currentUser.wallet)) {
+                showAlreadyClaimed();
+                return;
+            }
+            
+            // Render the appropriate content based on whether user has claimed
+            airdropFormContainer.innerHTML = `
+                <div class="form-container">
+                    <form id="airdropForm">
+                        <div class="form-group">
+                            <label for="fullName">Full Name</label>
+                            <input type="text" id="fullName" class="form-control" placeholder="Your full name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <input type="email" id="email" class="form-control" placeholder="Your email address" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="wallet">Wallet Address</label>
+                            <input type="text" id="wallet" class="form-control" placeholder="Your ERC-20 wallet address" required>
+                            <p class="form-note">Make sure this is the correct address as tokens cannot be recovered if sent to the wrong address.</p>
+                        </div>
+                        <div class="form-group">
+                            <label for="twitter">Twitter Username</label>
+                            <input type="text" id="twitter" class="form-control" placeholder="@yourusername" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="telegram">Telegram Username</label>
+                            <input type="text" id="telegram" class="form-control" placeholder="@yourusername" required>
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="agreeTerms" required>
+                            <label for="agreeTerms">I agree to the terms and conditions and privacy policy</label>
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="notRobot" required>
+                            <label for="notRobot">I'm not a robot</label>
+                        </div>
+                        <button type="submit" class="btn" style="width: 100%;">Submit & Claim Tokens</button>
+                    </form>
+                    <div class="dashboard-link" id="dashboardLinkContainer">
+                        <a href="dashboard.html">Go to Dashboard <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                </div>
+            `;
+            
+            // Add event listener to the dynamically created form
+            document.getElementById('airdropForm')?.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const wallet = document.getElementById('wallet').value.trim();
+                const email = document.getElementById('email').value.trim();
+                const participants = JSON.parse(localStorage.getItem('airdropParticipants')) || [];
+                
+                // Check if wallet is already registered
+                const isRegistered = participants.some(p => p.wallet === wallet);
+                
+                if (isRegistered) {
+                    alert('This wallet address has already claimed the airdrop. Please login instead.');
+                    loginBtn.click();
+                    return;
+                }
+                
+                // Add new participant
+                const newParticipant = {
+                    name: document.getElementById('fullName').value,
+                    email: email,
+                    wallet: wallet,
+                    twitter: document.getElementById('twitter').value,
+                    telegram: document.getElementById('telegram').value,
+                    date: new Date().toISOString()
+                };
+                
+                participants.push(newParticipant);
+                localStorage.setItem('airdropParticipants', JSON.stringify(participants));
+                sessionStorage.setItem('currentUser', JSON.stringify(newParticipant));
+                
+                // Show success message
+                alert('Thank you for participating in the Nexus Token airdrop! Your submission has been received.');
+                
+                // Update UI
+                showAlreadyClaimed();
+                document.getElementById('dashboardLink').style.display = 'inline-block';
+                loginBtn.style.display = 'none';
+                document.getElementById('joinAirdropNavItem').style.display = 'none';
+                document.getElementById('claimBtn').style.display = 'none';
+            });
+        }
+
+        // Show "already claimed" message
+        function showAlreadyClaimed() {
+            const airdropFormContainer = document.getElementById('airdropFormContainer');
+            airdropFormContainer.innerHTML = `
+                <div class="already-claimed">
+                    <i class="fas fa-check-circle"></i>
+                    <h2>You've Already Claimed Your Airdrop!</h2>
+                    <p>Thank you for participating in the Nexus Token airdrop. You can check your token balance and status in your dashboard.</p>
+                    <a href="dashboard.html" class="btn">Go to Dashboard</a>
+                </div>
+            `;
+        }
+
+        // Check if user is logged in or has claimed airdrop
+        function checkUserStatus() {
+            const currentUser = JSON.parse(sessionStorage.getItem('currentUser'));
+            const participants = JSON.parse(localStorage.getItem('airdropParticipants')) || [];
+            
+            if (currentUser && participants.some(p => p.wallet === currentUser.wallet)) {
+                // User is logged in and has claimed airdrop
+                document.getElementById('dashboardLink').style.display = 'inline-block';
+                loginBtn.style.display = 'none';
+                document.getElementById('joinAirdropNavItem').style.display = 'none';
+                document.getElementById('claimBtn').style.display = 'none';
+                showAlreadyClaimed();
+            } else if (participants.some(p => p.wallet === currentUser?.wallet)) {
+                // User has claimed airdrop but not logged in
+                showAlreadyClaimed();
+            }
+        }
+
+        // Initialize the page
+        function init() {
+            checkAirdropStatus();
+            checkUserStatus();
+        }
+
+        // Run on page load
+        window.addEventListener('load', init);
     </script>
 </body>
 </html>
