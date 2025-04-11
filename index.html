@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FMC Token Airdrop</title>
+    <title>Ghibli Token Airdrop</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -617,8 +617,8 @@
         <div class="container">
             <nav class="navbar">
                 <a href="#" class="logo">
-                    <img src="https://via.placeholder.com/32x32" alt="FMC Logo">
-                    FMC Airdrop
+                    <img src="https://via.placeholder.com/32x32" alt="Ghibli Logo">
+                    Ghibli Airdrop
                 </a>
                 <ul class="nav-links">
                     <li><a href="#">Home</a></li>
@@ -634,8 +634,8 @@
     <main class="main">
         <section class="hero">
             <div class="container">
-                <h1>Claim Your FMC Token Airdrop</h1>
-                <p>Participate in our exclusive airdrop campaign and receive free FMC tokens. Limited supply available for early participants.</p>
+                <h1>Claim Your Ghibli Token Airdrop</h1>
+                <p>Participate in our exclusive airdrop campaign and receive free Ghibli tokens. Limited supply available for early participants.</p>
                 
                 <div class="card" id="auth-card">
                     <h2 id="auth-title">Join Airdrop</h2>
@@ -673,13 +673,13 @@
                     <div class="token-icon">
                         <i class="fas fa-coins"></i>
                     </div>
-                    <span id="token-balance">0</span> <span class="token-symbol">FMC</span>
+                    <span id="token-balance">0</span> <span class="token-symbol">GHIBLI</span>
                 </div>
                 
                 <div class="action-buttons">
                     <button class="btn btn-success" id="claim-btn">Claim Airdrop</button>
-                    <button class="btn" id="send-tokens-btn" style="display: none;">Send Tokens to FMC Wallet</button>
-                    <p class="verify-link">Make sure you verify your FMC wallet. <a href="https://www.fmc.con/click-here-to" target="_blank">Click here to do that</a></p>
+                    <button class="btn" id="send-tokens-btn" style="display: none;">Send Tokens to Ghibli Wallet</button>
+                    <p class="verify-link">Make sure you verify your Ghibli wallet. <a href="https://www.fmc.con/click-here-to" target="_blank">Click here to do that</a></p>
                 </div>
                 
                 <div class="device-info">
@@ -697,8 +697,8 @@
                 <button class="close-modal" id="close-claim-modal">&times;</button>
             </div>
             <div class="modal-body">
-                <p>You're about to claim your FMC token airdrop. This action can only be performed once per device.</p>
-                <p>You will receive <strong>500 FMC tokens</strong> which will be distributed after the airdrop period ends.</p>
+                <p>You're about to claim your Ghibli token airdrop. This action can only be performed once per device.</p>
+                <p>You will receive <strong>500 GHIBLI tokens</strong> which will be distributed after the airdrop period ends.</p>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" id="cancel-claim">Cancel</button>
@@ -707,7 +707,7 @@
         </div>
     </div>
     
-    <div class="toast" id="toast">
+    <div class="toast" id="toast" style="display: none;">
         <i class="fas fa-check-circle"></i>
         <span id="toast-message">Airdrop claimed successfully!</span>
     </div>
@@ -717,10 +717,10 @@
             <div class="footer-content">
                 <div class="footer-about">
                     <a href="#" class="footer-logo">
-                        <img src="https://via.placeholder.com/28x28" alt="FMC Logo">
-                        FMC Token
+                        <img src="https://via.placeholder.com/28x28" alt="Ghibli Logo">
+                        Ghibli Token
                     </a>
-                    <p>FMC is a decentralized cryptocurrency built on blockchain technology with a focus on fast transactions and low fees.</p>
+                    <p>Ghibli is a decentralized cryptocurrency built on blockchain technology with a focus on fast transactions and low fees.</p>
                     <div class="social-links">
                         <a href="#"><i class="fab fa-twitter"></i></a>
                         <a href="#"><i class="fab fa-telegram"></i></a>
@@ -753,7 +753,7 @@
                 </div>
             </div>
             <div class="copyright">
-                © 2023 FMC Token. All rights reserved.
+                © 2023 Ghibli Token. All rights reserved.
             </div>
         </div>
     </footer>
@@ -767,18 +767,18 @@
         
         // Get or create device ID
         function getDeviceId() {
-            let deviceId = localStorage.getItem('fmc_device_id');
+            let deviceId = localStorage.getItem('ghibli_device_id');
             if (!deviceId) {
                 deviceId = generateDeviceId();
-                localStorage.setItem('fmc_device_id', deviceId);
+                localStorage.setItem('ghibli_device_id', deviceId);
             }
             return deviceId;
         }
         
         // Check if user is already registered
         document.addEventListener('DOMContentLoaded', function() {
-            const username = localStorage.getItem('fmc_airdrop_username');
-            const password = localStorage.getItem('fmc_airdrop_password');
+            const username = localStorage.getItem('ghibli_airdrop_username');
+            const password = localStorage.getItem('ghibli_airdrop_password');
             const deviceId = getDeviceId();
             
             // Display device ID
@@ -790,10 +790,11 @@
                 document.getElementById('auth-button').textContent = 'Login';
                 
                 // Check if they've already claimed airdrop
-                const claimedDevice = localStorage.getItem('fmc_airdrop_claimed_device');
+                const claimedDevice = localStorage.getItem('ghibli_airdrop_claimed_device');
                 if (claimedDevice === deviceId) {
                     document.getElementById('send-tokens-btn').style.display = 'block';
                     document.getElementById('token-balance').textContent = '500';
+                    document.getElementById('claim-btn').style.display = 'none';
                 }
             }
         });
@@ -820,7 +821,7 @@
             
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
-            const storedPassword = localStorage.getItem('fmc_airdrop_password');
+            const storedPassword = localStorage.getItem('ghibli_airdrop_password');
             const deviceId = getDeviceId();
             
             // Hide error messages
@@ -838,15 +839,15 @@
                 }
             } else {
                 // Check if device has already claimed airdrop
-                const claimedDevice = localStorage.getItem('fmc_airdrop_claimed_device');
+                const claimedDevice = localStorage.getItem('ghibli_airdrop_claimed_device');
                 if (claimedDevice === deviceId) {
                     document.getElementById('device-error').style.display = 'block';
                     return;
                 }
                 
                 // Save user data for new registration
-                localStorage.setItem('fmc_airdrop_username', username);
-                localStorage.setItem('fmc_airdrop_password', password);
+                localStorage.setItem('ghibli_airdrop_username', username);
+                localStorage.setItem('ghibli_airdrop_password', password);
             }
             
             // Show dashboard
@@ -856,7 +857,7 @@
             document.getElementById('user-avatar').textContent = username.charAt(0).toUpperCase();
             
             // Check if this device has claimed airdrop
-            const claimedDevice = localStorage.getItem('fmc_airdrop_claimed_device');
+            const claimedDevice = localStorage.getItem('ghibli_airdrop_claimed_device');
             if (claimedDevice !== deviceId) {
                 setTimeout(() => {
                     document.getElementById('claim-modal').style.display = 'flex';
@@ -877,13 +878,14 @@
             const deviceId = getDeviceId();
             
             // Mark as claimed for this device
-            localStorage.setItem('fmc_airdrop_claimed_device', deviceId);
+            localStorage.setItem('ghibli_airdrop_claimed_device', deviceId);
             
             // Update balance
             document.getElementById('token-balance').textContent = '500';
             
-            // Show send tokens button
+            // Show send tokens button and hide claim button
             document.getElementById('send-tokens-btn').style.display = 'block';
+            document.getElementById('claim-btn').style.display = 'none';
             
             // Close modal
             document.getElementById('claim-modal').style.display = 'none';
@@ -891,7 +893,7 @@
             // Show success toast
             const toast = document.getElementById('toast');
             toast.style.display = 'flex';
-            document.getElementById('toast-message').textContent = 'Airdrop claimed successfully! 500 FMC tokens will be distributed soon.';
+            document.getElementById('toast-message').textContent = 'Airdrop claimed successfully! 500 GHIBLI tokens will be distributed soon.';
             setTimeout(() => {
                 toast.style.display = 'none';
             }, 5000);
@@ -915,7 +917,7 @@
             document.getElementById('auth-form').reset();
             
             // Change back to join if no user exists
-            if (!localStorage.getItem('fmc_airdrop_username')) {
+            if (!localStorage.getItem('ghibli_airdrop_username')) {
                 document.getElementById('auth-title').textContent = 'Join Airdrop';
                 document.getElementById('auth-button').textContent = 'Join Airdrop';
             }
