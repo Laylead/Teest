@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ghibli Token Airdrop</title>
+    <title>Deep Ghibli Token Airdrop</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -33,16 +33,11 @@
             line-height: 1.6;
         }
         
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-        
+        /* Enhanced Header with Logo */
         header {
             background-color: white;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            padding: 20px 0;
+            padding: 15px 0;
             position: fixed;
             width: 100%;
             top: 0;
@@ -53,20 +48,48 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
         }
         
-        .logo {
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--primary);
-            text-decoration: none;
+        /* Professional Logo Styles */
+        .logo-container {
             display: flex;
             align-items: center;
+            gap: 12px;
+            text-decoration: none;
         }
         
-        .logo img {
-            height: 32px;
-            margin-right: 10px;
+        .logo-symbol {
+            width: 40px;
+            height: 40px;
+            flex-shrink: 0;
+        }
+        
+        .logo-symbol svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        
+        .logo-text {
+            line-height: 1.2;
+        }
+        
+        .logo-primary {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--dark);
+            letter-spacing: 0.5px;
+        }
+        
+        .logo-secondary {
+            font-size: 0.75rem;
+            font-weight: 400;
+            color: var(--gray);
+            letter-spacing: 1px;
+            text-transform: uppercase;
         }
         
         .nav-links {
@@ -87,6 +110,12 @@
         
         .nav-links a:hover {
             color: var(--primary);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
         }
         
         .main {
@@ -517,28 +546,44 @@
 </head>
 <body>
     <header>
-        <div class="container">
-            <nav class="navbar">
-                <a href="#" class="logo">
-                    <img src="/logo/ghibli-logo.png" alt="Ghibli Logo">
-                    Ghibli Airdrop
-                </a>
-                <ul class="nav-links">
-                    <li><a href="#">Home</a></li>
-                    <li><a href="#">About</a></li>
-                    <li><a href="#">Tokenomics</a></li>
-                    <li><a href="#">Roadmap</a></li>
-                    <li><a href="#">FAQ</a></li>
-                </ul>
-            </nav>
-        </div>
+        <nav class="navbar">
+            <a href="#" class="logo-container">
+                <div class="logo-symbol">
+                    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="logo-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#3a56d4"/>
+                                <stop offset="100%" stop-color="#4361ee"/>
+                            </linearGradient>
+                        </defs>
+                        <circle cx="32" cy="32" r="30" fill="url(#logo-gradient)"/>
+                        <circle cx="32" cy="32" r="26" fill="none" stroke="#FFD700" stroke-width="1.5" stroke-dasharray="2,4"/>
+                        <path d="M32 12 A20 20 0 0 1 52 32 L45 32 A13 13 0 0 0 32 19 Z" fill="white" fill-opacity="0.95"/>
+                        <path d="M32 52 A20 20 0 0 0 52 32 L45 32 A13 13 0 0 1 32 45 Z" fill="white" fill-opacity="0.95"/>
+                        <path d="M20 45 L32 32 L44 45 Z" fill="#FFD700" fill-opacity="0.9"/>
+                    </svg>
+                </div>
+                <div class="logo-text">
+                    <div class="logo-primary">DEEP GHIBLI</div>
+                    <div class="logo-secondary">TOKEN</div>
+                </div>
+            </a>
+            
+            <ul class="nav-links">
+                <li><a href="#">Home</a></li>
+                <li><a href="#">About</a></li>
+                <li><a href="#">Tokenomics</a></li>
+                <li><a href="#">Roadmap</a></li>
+                <li><a href="#">FAQ</a></li>
+            </ul>
+        </nav>
     </header>
     
     <main class="main">
         <section class="hero">
             <div class="container">
-                <h1>Claim Your Ghibli Token Airdrop</h1>
-                <p>Participate in our exclusive airdrop campaign and receive free Ghibli tokens. Limited supply available for early participants.</p>
+                <h1>Claim Your Deep Ghibli Token Airdrop</h1>
+                <p>Participate in our exclusive airdrop campaign and receive free Deep Ghibli tokens. Limited supply available for early participants.</p>
                 
                 <div class="card" id="auth-card">
                     <h2 id="auth-title">Join Airdrop</h2>
@@ -576,13 +621,13 @@
                     <div class="token-icon">
                         <i class="fas fa-coins"></i>
                     </div>
-                    <span id="token-balance">0</span> <span class="token-symbol">GHIBLI</span>
+                    <span id="token-balance">0</span> <span class="token-symbol">DGHIBLI</span>
                 </div>
                 
                 <div class="action-buttons">
                     <button class="btn btn-success" id="claim-btn">Claim Airdrop</button>
-                    <button class="btn" id="send-tokens-btn" style="display: none;">Send Tokens to Ghibli Wallet</button>
-                    <p class="verify-link">Make sure you verify your Ghibli wallet. <a href="https://www.fmc.con/click-here-to" target="_blank">Click here to do that</a></p>
+                    <button class="btn" id="send-tokens-btn" style="display: none;">Send Tokens to Wallet</button>
+                    <p class="verify-link">Make sure you verify your wallet. <a href="https://www.fmc.con/click-here-to" target="_blank">Click here to do that</a></p>
                 </div>
                 
                 <div class="device-info">
@@ -600,8 +645,8 @@
                 <button class="close-modal" id="close-claim-modal">&times;</button>
             </div>
             <div class="modal-body">
-                <p>You're about to claim your Ghibli token airdrop. This action can only be performed once per device.</p>
-                <p>You will receive <strong>500 GHIBLI tokens</strong> which will be distributed after the airdrop period ends.</p>
+                <p>You're about to claim your Deep Ghibli token airdrop. This action can only be performed once per device.</p>
+                <p>You will receive <strong>500 DGHIBLI tokens</strong> which will be distributed after the airdrop period ends.</p>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" id="cancel-claim">Cancel</button>
@@ -617,7 +662,7 @@
     
     <footer>
         <div class="container">
-            <p class="copyright">© 2023 Ghibli Token. All rights reserved.</p>
+            <p class="copyright">© 2023 Deep Ghibli Token. All rights reserved.</p>
         </div>
     </footer>
     
@@ -630,18 +675,18 @@
         
         // Get or create device ID
         function getDeviceId() {
-            let deviceId = localStorage.getItem('ghibli_device_id');
+            let deviceId = localStorage.getItem('dghibli_device_id');
             if (!deviceId) {
                 deviceId = generateDeviceId();
-                localStorage.setItem('ghibli_device_id', deviceId);
+                localStorage.setItem('dghibli_device_id', deviceId);
             }
             return deviceId;
         }
         
         // Check if user is already registered
         document.addEventListener('DOMContentLoaded', function() {
-            const username = localStorage.getItem('ghibli_airdrop_username');
-            const password = localStorage.getItem('ghibli_airdrop_password');
+            const username = localStorage.getItem('dghibli_airdrop_username');
+            const password = localStorage.getItem('dghibli_airdrop_password');
             const deviceId = getDeviceId();
             
             // Display device ID
@@ -653,7 +698,7 @@
                 document.getElementById('auth-button').textContent = 'Login';
                 
                 // Check if they've already claimed airdrop
-                const claimedDevice = localStorage.getItem('ghibli_airdrop_claimed_device');
+                const claimedDevice = localStorage.getItem('dghibli_airdrop_claimed_device');
                 if (claimedDevice === deviceId) {
                     document.getElementById('send-tokens-btn').style.display = 'block';
                     document.getElementById('token-balance').textContent = '500';
@@ -684,7 +729,7 @@
             
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
-            const storedPassword = localStorage.getItem('ghibli_airdrop_password');
+            const storedPassword = localStorage.getItem('dghibli_airdrop_password');
             const deviceId = getDeviceId();
             
             // Hide error messages
@@ -702,15 +747,15 @@
                 }
             } else {
                 // Check if device has already claimed airdrop
-                const claimedDevice = localStorage.getItem('ghibli_airdrop_claimed_device');
+                const claimedDevice = localStorage.getItem('dghibli_airdrop_claimed_device');
                 if (claimedDevice === deviceId) {
                     document.getElementById('device-error').style.display = 'block';
                     return;
                 }
                 
                 // Save user data for new registration
-                localStorage.setItem('ghibli_airdrop_username', username);
-                localStorage.setItem('ghibli_airdrop_password', password);
+                localStorage.setItem('dghibli_airdrop_username', username);
+                localStorage.setItem('dghibli_airdrop_password', password);
             }
             
             // Show dashboard
@@ -720,7 +765,7 @@
             document.getElementById('user-avatar').textContent = username.charAt(0).toUpperCase();
             
             // Check if this device has claimed airdrop
-            const claimedDevice = localStorage.getItem('ghibli_airdrop_claimed_device');
+            const claimedDevice = localStorage.getItem('dghibli_airdrop_claimed_device');
             if (claimedDevice !== deviceId) {
                 setTimeout(() => {
                     document.getElementById('claim-modal').style.display = 'flex';
@@ -741,7 +786,7 @@
             const deviceId = getDeviceId();
             
             // Mark as claimed for this device
-            localStorage.setItem('ghibli_airdrop_claimed_device', deviceId);
+            localStorage.setItem('dghibli_airdrop_claimed_device', deviceId);
             
             // Update balance
             document.getElementById('token-balance').textContent = '500';
@@ -756,7 +801,7 @@
             // Show success toast
             const toast = document.getElementById('toast');
             toast.style.display = 'flex';
-            document.getElementById('toast-message').textContent = 'Airdrop claimed successfully! 500 GHIBLI tokens will be distributed soon.';
+            document.getElementById('toast-message').textContent = 'Airdrop claimed successfully! 500 DGHIBLI tokens will be distributed soon.';
             setTimeout(() => {
                 toast.style.display = 'none';
             }, 5000);
@@ -780,7 +825,7 @@
             document.getElementById('auth-form').reset();
             
             // Change back to join if no user exists
-            if (!localStorage.getItem('ghibli_airdrop_username')) {
+            if (!localStorage.getItem('dghibli_airdrop_username')) {
                 document.getElementById('auth-title').textContent = 'Join Airdrop';
                 document.getElementById('auth-button').textContent = 'Join Airdrop';
             }
