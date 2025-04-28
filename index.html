@@ -1,839 +1,219 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Deep Ghibli Token Airdrop</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --primary: #4361ee;
-            --primary-dark: #3a56d4;
-            --secondary: #3f37c9;
-            --dark: #1a1a2e;
-            --light: #f8f9fa;
-            --success: #4cc9f0;
-            --warning: #f8961e;
-            --danger: #f72585;
-            --gray: #6c757d;
-            --light-gray: #e9ecef;
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f5f7ff;
-            color: var(--dark);
-            line-height: 1.6;
-        }
-        
-        /* Enhanced Header with Logo */
-        header {
-            background-color: white;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            padding: 15px 0;
-            position: fixed;
-            width: 100%;
-            top: 0;
-            z-index: 100;
-        }
-        
-        .navbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-        
-        /* Professional Logo Styles */
-        .logo-container {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            text-decoration: none;
-        }
-        
-        .logo-symbol {
-            width: 40px;
-            height: 40px;
-            flex-shrink: 0;
-        }
-        
-        .logo-symbol svg {
-            width: 100%;
-            height: 100%;
-            display: block;
-        }
-        
-        .logo-text {
-            line-height: 1.2;
-        }
-        
-        .logo-primary {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--dark);
-            letter-spacing: 0.5px;
-        }
-        
-        .logo-secondary {
-            font-size: 0.75rem;
-            font-weight: 400;
-            color: var(--gray);
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
-        
-        .nav-links {
-            display: flex;
-            list-style: none;
-        }
-        
-        .nav-links li {
-            margin-left: 30px;
-        }
-        
-        .nav-links a {
-            text-decoration: none;
-            color: var(--dark);
-            font-weight: 500;
-            transition: color 0.3s;
-        }
-        
-        .nav-links a:hover {
-            color: var(--primary);
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-        
-        .main {
-            padding-top: 100px;
-            min-height: calc(100vh - 100px);
-        }
-        
-        .hero {
-            text-align: center;
-            padding: 60px 0;
-        }
-        
-        .hero h1 {
-            font-size: 48px;
-            margin-bottom: 20px;
-            color: var(--dark);
-            font-weight: 700;
-            line-height: 1.2;
-        }
-        
-        .hero p {
-            font-size: 18px;
-            color: var(--gray);
-            max-width: 700px;
-            margin: 0 auto 40px;
-        }
-        
-        .card {
-            background-color: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-            padding: 40px;
-            max-width: 500px;
-            margin: 0 auto;
-            border: 1px solid rgba(0, 0, 0, 0.03);
-        }
-        
-        .card h2 {
-            text-align: center;
-            margin-bottom: 30px;
-            color: var(--dark);
-            font-size: 28px;
-            font-weight: 600;
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-            position: relative;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: var(--dark);
-        }
-        
-        .form-control {
-            width: 100%;
-            padding: 14px 15px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: all 0.3s;
-            background-color: var(--light-gray);
-            border: none;
-        }
-        
-        .form-control:focus {
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
-            background-color: white;
-        }
-        
-        .password-toggle {
-            position: absolute;
-            right: 15px;
-            top: 42px;
-            cursor: pointer;
-            color: var(--gray);
-        }
-        
-        .btn {
-            display: inline-block;
-            padding: 14px 24px;
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-decoration: none;
-            text-align: center;
-            width: 100%;
-            box-shadow: 0 4px 6px rgba(67, 97, 238, 0.1);
-        }
-        
-        .btn:hover {
-            background-color: var(--primary-dark);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(67, 97, 238, 0.15);
-        }
-        
-        .btn:active {
-            transform: translateY(0);
-        }
-        
-        .btn-secondary {
-            background-color: var(--gray);
-            box-shadow: 0 4px 6px rgba(108, 117, 125, 0.1);
-        }
-        
-        .btn-secondary:hover {
-            background-color: #5a6268;
-            box-shadow: 0 6px 12px rgba(108, 117, 125, 0.15);
-        }
-        
-        .btn-success {
-            background-color: var(--success);
-            box-shadow: 0 4px 6px rgba(76, 201, 240, 0.1);
-        }
-        
-        .btn-success:hover {
-            background-color: #3ab5db;
-            box-shadow: 0 6px 12px rgba(76, 201, 240, 0.15);
-        }
-        
-        .dashboard {
-            display: none;
-            padding: 40px 0;
-        }
-        
-        .dashboard-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 40px;
-        }
-        
-        .dashboard-title {
-            font-size: 32px;
-            color: var(--dark);
-            font-weight: 700;
-        }
-        
-        .user-info {
-            display: flex;
-            align-items: center;
-        }
-        
-        .user-avatar {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            background-color: var(--primary);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 12px;
-            font-weight: 600;
-            font-size: 18px;
-        }
-        
-        .username {
-            font-weight: 500;
-        }
-        
-        .logout-btn {
-            margin-left: 20px;
-            padding: 8px 16px;
-            background-color: var(--light-gray);
-            color: var(--dark);
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .logout-btn:hover {
-            background-color: #dee2e6;
-        }
-        
-        .stats-card {
-            background-color: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-            padding: 40px;
-            margin-bottom: 30px;
-            border: 1px solid rgba(0, 0, 0, 0.03);
-        }
-        
-        .stats-card h3 {
-            margin-bottom: 20px;
-            color: var(--gray);
-            font-size: 18px;
-            font-weight: 500;
-        }
-        
-        .balance {
-            font-size: 42px;
-            font-weight: 700;
-            color: var(--dark);
-            margin-bottom: 30px;
-            display: flex;
-            align-items: center;
-        }
-        
-        .token-icon {
-            width: 36px;
-            height: 36px;
-            margin-right: 10px;
-            background-color: var(--primary);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-        }
-        
-        .token-symbol {
-            color: var(--gray);
-            font-size: 16px;
-            font-weight: 400;
-            margin-left: 5px;
-        }
-        
-        .action-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        
-        .verify-link {
-            text-align: center;
-            color: var(--gray);
-            font-size: 14px;
-            margin-top: 15px;
-        }
-        
-        .verify-link a {
-            color: var(--primary);
-            text-decoration: none;
-            font-weight: 500;
-        }
-        
-        .verify-link a:hover {
-            text-decoration: underline;
-        }
-        
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-            backdrop-filter: blur(5px);
-        }
-        
-        .modal-content {
-            background-color: white;
-            border-radius: 12px;
-            padding: 40px;
-            max-width: 500px;
-            width: 90%;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-            position: relative;
-            animation: modalFadeIn 0.3s;
-            border: 1px solid rgba(0, 0, 0, 0.05);
-        }
-        
-        @keyframes modalFadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px;
-        }
-        
-        .modal-title {
-            font-size: 24px;
-            font-weight: 600;
-            color: var(--dark);
-        }
-        
-        .close-modal {
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            color: var(--gray);
-            transition: color 0.3s;
-        }
-        
-        .close-modal:hover {
-            color: var(--dark);
-        }
-        
-        .modal-body {
-            margin-bottom: 30px;
-        }
-        
-        .modal-body p {
-            color: var(--gray);
-            margin-bottom: 20px;
-        }
-        
-        .modal-footer {
-            display: flex;
-            justify-content: flex-end;
-            gap: 15px;
-        }
-        
-        .toast {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background-color: var(--success);
-            color: white;
-            padding: 16px 24px;
-            border-radius: 8px;
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-            display: none;
-            z-index: 1100;
-            animation: toastFadeIn 0.3s;
-            display: flex;
-            align-items: center;
-        }
-        
-        .toast.error {
-            background-color: var(--danger);
-        }
-        
-        .toast.warning {
-            background-color: var(--warning);
-        }
-        
-        .toast i {
-            margin-right: 10px;
-            font-size: 18px;
-        }
-        
-        @keyframes toastFadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .error-message {
-            color: var(--danger);
-            font-size: 14px;
-            margin-top: 5px;
-            display: none;
-        }
-        
-        .device-info {
-            background-color: var(--light-gray);
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 20px;
-            font-size: 14px;
-        }
-        
-        .device-info p {
-            margin-bottom: 5px;
-            color: var(--gray);
-        }
-        
-        .device-info strong {
-            color: var(--dark);
-        }
-        
-        footer {
-            background-color: var(--dark);
-            color: white;
-            padding: 30px 0;
-            text-align: center;
-        }
-        
-        .copyright {
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 14px;
-        }
-        
-        @media (max-width: 768px) {
-            .hero h1 {
-                font-size: 36px;
-            }
-            
-            .nav-links {
-                display: none;
-            }
-            
-            .card {
-                padding: 30px 20px;
-            }
-            
-            .dashboard-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 20px;
-            }
-        }
-    </style>
+  <title>Voice Call with Token Join</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 20px;
+      text-align: center;
+    }
+    .screen {
+      display: none;
+    }
+    .active {
+      display: block;
+    }
+    #profile-view img {
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin: 20px 0;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 4px;
+      font-size: 16px;
+      margin: 10px;
+      cursor: pointer;
+    }
+    #end-call {
+      background: #f44336;
+    }
+    input {
+      padding: 10px;
+      font-size: 16px;
+      width: 200px;
+      text-align: center;
+      letter-spacing: 3px;
+    }
+    .token-display {
+      font-size: 24px;
+      letter-spacing: 3px;
+      margin: 20px 0;
+      color: #2196F3;
+    }
+    .status {
+      margin: 20px 0;
+      font-style: italic;
+      color: #666;
+    }
+  </style>
 </head>
 <body>
-    <header>
-        <nav class="navbar">
-            <a href="#" class="logo-container">
-                <div class="logo-symbol">
-                    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-                        <defs>
-                            <linearGradient id="logo-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stop-color="#3a56d4"/>
-                                <stop offset="100%" stop-color="#4361ee"/>
-                            </linearGradient>
-                        </defs>
-                        <circle cx="32" cy="32" r="30" fill="url(#logo-gradient)"/>
-                        <circle cx="32" cy="32" r="26" fill="none" stroke="#FFD700" stroke-width="1.5" stroke-dasharray="2,4"/>
-                        <path d="M32 12 A20 20 0 0 1 52 32 L45 32 A13 13 0 0 0 32 19 Z" fill="white" fill-opacity="0.95"/>
-                        <path d="M32 52 A20 20 0 0 0 52 32 L45 32 A13 13 0 0 1 32 45 Z" fill="white" fill-opacity="0.95"/>
-                        <path d="M20 45 L32 32 L44 45 Z" fill="#FFD700" fill-opacity="0.9"/>
-                    </svg>
-                </div>
-                <div class="logo-text">
-                    <div class="logo-primary">DEEP GHIBLI</div>
-                    <div class="logo-secondary">TOKEN</div>
-                </div>
-            </a>
-            
-            <ul class="nav-links">
-                <li><a href="#">Home</a></li>
-                <li><a href="#">About</a></li>
-                <li><a href="#">Tokenomics</a></li>
-                <li><a href="#">Roadmap</a></li>
-                <li><a href="#">FAQ</a></li>
-            </ul>
-        </nav>
-    </header>
-    
-    <main class="main">
-        <section class="hero">
-            <div class="container">
-                <h1>Claim Your Deep Ghibli Token Airdrop</h1>
-                <p>Participate in our exclusive airdrop campaign and receive free Deep Ghibli tokens. Limited supply available for early participants.</p>
-                
-                <div class="card" id="auth-card">
-                    <h2 id="auth-title">Join Airdrop</h2>
-                    <form id="auth-form">
-                        <div class="form-group">
-                            <label for="username">Username</label>
-                            <input type="text" id="username" class="form-control" placeholder="Enter your username" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="password">Password</label>
-                            <input type="password" id="password" class="form-control" placeholder="Create a password" required>
-                            <i class="fas fa-eye password-toggle" id="toggle-password"></i>
-                        </div>
-                        <div class="error-message" id="password-error">Incorrect password. Please try again.</div>
-                        <div class="error-message" id="device-error">Airdrop already claimed from this device.</div>
-                        <button type="submit" class="btn" id="auth-button">Join Airdrop</button>
-                    </form>
-                </div>
-            </div>
-        </section>
+
+  <!-- Profile Screen -->
+  <div id="profile-view" class="screen active">
+    <img src="https://randomuser.me/api/portraits/women/65.jpg" alt="Profile">
+    <h2>Sarah Johnson</h2>
+    <p>Senior Developer</p>
+    <button id="start-call">Start Voice Call</button>
+  </div>
+
+  <!-- Caller Screen -->
+  <div id="caller-view" class="screen">
+    <h2>Your Call is Ready</h2>
+    <p>Share this code with others:</p>
+    <div class="token-display" id="call-token"></div>
+    <p class="status" id="caller-status">Waiting for others to join...</p>
+    <button id="end-call">End Call</button>
+  </div>
+
+  <!-- Join Screen -->
+  <div id="join-view" class="screen">
+    <h2>Join a Call</h2>
+    <p>Enter the 6-digit call code:</p>
+    <input type="text" id="token-input" maxlength="6" placeholder="123456">
+    <button id="join-btn">Join Call</button>
+    <p class="status" id="join-status"></p>
+  </div>
+
+  <script src="https://cdn.agora.io/sdk/release/AgoraRTC_N-4.19.0.js"></script>
+  <script>
+    // Configuration
+    const APP_ID = "974f4c7b124940a1a6ee5e526175118d";
+    let client;
+    let localTracks = [];
+    let currentChannel = "";
+
+    // DOM elements
+    const profileView = document.getElementById('profile-view');
+    const callerView = document.getElementById('caller-view');
+    const joinView = document.getElementById('join-view');
+    const callTokenDisplay = document.getElementById('call-token');
+    const tokenInput = document.getElementById('token-input');
+    const joinBtn = document.getElementById('join-btn');
+    const joinStatus = document.getElementById('join-status');
+    const callerStatus = document.getElementById('caller-status');
+
+    // Generate a 6-digit token
+    function generateToken() {
+      return Math.floor(100000 + Math.random() * 900000).toString();
+    }
+
+    // Show a specific screen
+    function showScreen(screen) {
+      document.querySelectorAll('.screen').forEach(el => {
+        el.classList.remove('active');
+      });
+      document.getElementById(screen).classList.add('active');
+    }
+
+    // Initialize Agora client
+    async function joinChannel(channelName) {
+      client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+      
+      try {
+        // Join the channel
+        await client.join(APP_ID, channelName, null, null);
         
-        <section class="dashboard container" id="dashboard">
-            <div class="dashboard-header">
-                <h2 class="dashboard-title">Airdrop Dashboard</h2>
-                <div class="user-info">
-                    <div class="user-avatar" id="user-avatar">U</div>
-                    <span class="username" id="display-username">Username</span>
-                    <button class="logout-btn" id="logout-btn">Logout</button>
-                </div>
-            </div>
-            
-            <div class="stats-card">
-                <h3>Your Airdrop Balance</h3>
-                <div class="balance">
-                    <div class="token-icon">
-                        <i class="fas fa-coins"></i>
-                    </div>
-                    <span id="token-balance">0</span> <span class="token-symbol">DGHIBLI</span>
-                </div>
-                
-                <div class="action-buttons">
-                    <button class="btn btn-success" id="claim-btn">Claim Airdrop</button>
-                    <button class="btn" id="send-tokens-btn" style="display: none;">Send Tokens to Wallet</button>
-                    <p class="verify-link">Make sure you verify your wallet. <a href="https://fmcpay.com/auth/register?ref=706398250" target="_blank">Click here to do that</a></p>
-                </div>
-                
-                <div class="device-info">
-                    <p><strong>Device ID:</strong> <span id="device-id-display"></span></p>
-                    <p>This airdrop is limited to one claim per device.</p>
-                </div>
-            </div>
-        </section>
-    </main>
-    
-    <div class="modal" id="claim-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">Claim Your Airdrop</h3>
-                <button class="close-modal" id="close-claim-modal">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p>You're about to claim your Deep Ghibli token airdrop. This action can only be performed once per device.</p>
-                <p>You will receive <strong>500 DGHIBLI tokens</strong> which will be distributed after the airdrop period ends.</p>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" id="cancel-claim">Cancel</button>
-                <button class="btn btn-success" id="confirm-claim">Confirm Claim</button>
-            </div>
-        </div>
-    </div>
-    
-    <div class="toast" id="toast" style="display: none;">
-        <i class="fas fa-check-circle"></i>
-        <span id="toast-message">Airdrop claimed successfully!</span>
-    </div>
-    
-    <footer>
-        <div class="container">
-            <p class="copyright">© 2025 Deep Ghibli Token. All rights reserved.</p>
-        </div>
-    </footer>
-    
-    <script>
-        // Generate a unique device ID
-        function generateDeviceId() {
-            return 'device_' + Math.random().toString(36).substr(2, 9) + 
-                   '_' + new Date().getTime().toString(36);
-        }
+        // Create and publish local audio track
+        localTracks = await AgoraRTC.createMicrophoneAudioTrack();
+        await client.publish(localTracks);
         
-        // Get or create device ID
-        function getDeviceId() {
-            let deviceId = localStorage.getItem('dghibli_device_id');
-            if (!deviceId) {
-                deviceId = generateDeviceId();
-                localStorage.setItem('dghibli_device_id', deviceId);
-            }
-            return deviceId;
-        }
+        return true;
+      } catch (error) {
+        console.error("Error joining channel:", error);
+        return false;
+      }
+    }
+
+    // Leave the channel
+    async function leaveChannel() {
+      if (localTracks) {
+        localTracks.close();
+      }
+      if (client) {
+        await client.leave();
+      }
+      showScreen('profile-view');
+    }
+
+    // Start a new call
+    async function startCall() {
+      const token = generateToken();
+      callTokenDisplay.textContent = token;
+      showScreen('caller-view');
+      
+      const success = await joinChannel(`voice-call-${token}`);
+      if (success) {
+        callerStatus.textContent = "Call is active. Share the code above.";
         
-        // Check if user is already registered
-        document.addEventListener('DOMContentLoaded', function() {
-            const username = localStorage.getItem('dghibli_airdrop_username');
-            const password = localStorage.getItem('dghibli_airdrop_password');
-            const deviceId = getDeviceId();
-            
-            // Display device ID
-            document.getElementById('device-id-display').textContent = deviceId;
-            
-            if (username && password) {
-                // User is registered, show login form
-                document.getElementById('auth-title').textContent = 'Login';
-                document.getElementById('auth-button').textContent = 'Login';
-                
-                // Check if they've already claimed airdrop
-                const claimedDevice = localStorage.getItem('dghibli_airdrop_claimed_device');
-                if (claimedDevice === deviceId) {
-                    document.getElementById('send-tokens-btn').style.display = 'block';
-                    document.getElementById('token-balance').textContent = '500';
-                    document.getElementById('claim-btn').style.display = 'none';
-                }
-            }
+        // Listen for remote users
+        client.on("user-published", async (user, mediaType) => {
+          if (mediaType === "audio") {
+            await client.subscribe(user, mediaType);
+            user.audioTrack.play();
+            callerStatus.textContent = "Someone joined your call!";
+          }
         });
+      } else {
+        callerStatus.textContent = "Failed to start call";
+      }
+    }
+
+    // Join an existing call
+    async function joinExistingCall() {
+      const token = tokenInput.value.trim();
+      
+      if (!/^\d{6}$/.test(token)) {
+        joinStatus.textContent = "Please enter a valid 6-digit code";
+        return;
+      }
+      
+      joinStatus.textContent = "Connecting...";
+      
+      const success = await joinChannel(`voice-call-${token}`);
+      if (success) {
+        showScreen('caller-view');
+        callTokenDisplay.textContent = token;
+        callerStatus.textContent = "Connected to call!";
         
-        // Toggle password visibility
-        document.getElementById('toggle-password').addEventListener('click', function() {
-            const passwordInput = document.getElementById('password');
-            const icon = this;
-            
-            if (passwordInput.type === 'password') {
-                passwordInput.type = 'text';
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
-            } else {
-                passwordInput.type = 'password';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
-            }
+        // Listen for remote users
+        client.on("user-published", async (user, mediaType) => {
+          if (mediaType === "audio") {
+            await client.subscribe(user, mediaType);
+            user.audioTrack.play();
+          }
         });
-        
-        // Handle auth form submission
-        document.getElementById('auth-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            const storedPassword = localStorage.getItem('dghibli_airdrop_password');
-            const deviceId = getDeviceId();
-            
-            // Hide error messages
-            document.getElementById('password-error').style.display = 'none';
-            document.getElementById('device-error').style.display = 'none';
-            
-            // Check if this is a login attempt
-            const isLogin = document.getElementById('auth-title').textContent === 'Login';
-            
-            if (isLogin) {
-                // Verify password
-                if (password !== storedPassword) {
-                    document.getElementById('password-error').style.display = 'block';
-                    return;
-                }
-            } else {
-                // Check if device has already claimed airdrop
-                const claimedDevice = localStorage.getItem('dghibli_airdrop_claimed_device');
-                if (claimedDevice === deviceId) {
-                    document.getElementById('device-error').style.display = 'block';
-                    return;
-                }
-                
-                // Save user data for new registration
-                localStorage.setItem('dghibli_airdrop_username', username);
-                localStorage.setItem('dghibli_airdrop_password', password);
-            }
-            
-            // Show dashboard
-            document.getElementById('auth-card').style.display = 'none';
-            document.getElementById('dashboard').style.display = 'block';
-            document.getElementById('display-username').textContent = username;
-            document.getElementById('user-avatar').textContent = username.charAt(0).toUpperCase();
-            
-            // Check if this device has claimed airdrop
-            const claimedDevice = localStorage.getItem('dghibli_airdrop_claimed_device');
-            if (claimedDevice !== deviceId) {
-                setTimeout(() => {
-                    document.getElementById('claim-modal').style.display = 'flex';
-                }, 1000);
-            }
-        });
-        
-        // Handle claim modal
-        document.getElementById('close-claim-modal').addEventListener('click', function() {
-            document.getElementById('claim-modal').style.display = 'none';
-        });
-        
-        document.getElementById('cancel-claim').addEventListener('click', function() {
-            document.getElementById('claim-modal').style.display = 'none';
-        });
-        
-        document.getElementById('confirm-claim').addEventListener('click', function() {
-            const deviceId = getDeviceId();
-            
-            // Mark as claimed for this device
-            localStorage.setItem('dghibli_airdrop_claimed_device', deviceId);
-            
-            // Update balance
-            document.getElementById('token-balance').textContent = '500';
-            
-            // Show send tokens button and hide claim button
-            document.getElementById('send-tokens-btn').style.display = 'block';
-            document.getElementById('claim-btn').style.display = 'none';
-            
-            // Close modal
-            document.getElementById('claim-modal').style.display = 'none';
-            
-            // Show success toast
-            const toast = document.getElementById('toast');
-            toast.style.display = 'flex';
-            document.getElementById('toast-message').textContent = 'Airdrop claimed successfully! 500 DGHIBLI tokens will be distributed soon.';
-            setTimeout(() => {
-                toast.style.display = 'none';
-            }, 5000);
-        });
-        
-        // Manual claim button
-        document.getElementById('claim-btn').addEventListener('click', function() {
-            document.getElementById('claim-modal').style.display = 'flex';
-        });
-        
-        // Send tokens button
-        document.getElementById('send-tokens-btn').addEventListener('click', function() {
-            window.location.href = 'https://fmcpay.com/auth/register?ref=706398250';
-        });
-        
-        // Logout button
-        document.getElementById('logout-btn').addEventListener('click', function() {
-            // Reset UI
-            document.getElementById('auth-card').style.display = 'block';
-            document.getElementById('dashboard').style.display = 'none';
-            document.getElementById('auth-form').reset();
-            
-            // Change back to join if no user exists
-            if (!localStorage.getItem('dghibli_airdrop_username')) {
-                document.getElementById('auth-title').textContent = 'Join Airdrop';
-                document.getElementById('auth-button').textContent = 'Join Airdrop';
-            }
-            
-            // Hide error messages
-            document.getElementById('password-error').style.display = 'none';
-            document.getElementById('device-error').style.display = 'none';
-        });
-    </script>
+      } else {
+        joinStatus.textContent = "Failed to join call. Invalid code or network error.";
+      }
+    }
+
+    // Event listeners
+    document.getElementById('start-call').addEventListener('click', startCall);
+    document.getElementById('end-call').addEventListener('click', leaveChannel);
+    document.getElementById('join-btn').addEventListener('click', joinExistingCall);
+
+    // Show join screen if URL has token
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('token')) {
+      tokenInput.value = urlParams.get('token');
+      showScreen('join-view');
+    }
+
+    // Alternatively, add a button to switch to join view
+    const joinCallBtn = document.createElement('button');
+    joinCallBtn.textContent = 'Join Existing Call';
+    joinCallBtn.addEventListener('click', () => showScreen('join-view'));
+    profileView.appendChild(joinCallBtn);
+  </script>
 </body>
 </html>
