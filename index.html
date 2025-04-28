@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Phone-Like Voice Call</title>
+  <title>Two-Way Voice Call</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
@@ -33,15 +33,6 @@
       font-size: 60px;
       color: #495057;
     }
-    .profile-name {
-      font-size: 24px;
-      font-weight: 600;
-      margin-bottom: 5px;
-    }
-    .profile-title {
-      color: #6c757d;
-      margin-bottom: 20px;
-    }
     button {
       background: #4CAF50;
       color: white;
@@ -51,11 +42,6 @@
       font-size: 16px;
       margin: 10px;
       cursor: pointer;
-      transition: all 0.3s;
-    }
-    button:hover {
-      opacity: 0.9;
-      transform: translateY(-2px);
     }
     #end-call {
       background: #f44336;
@@ -106,6 +92,18 @@
       align-items: center;
       justify-content: center;
     }
+    #local-audio-indicator, #remote-audio-indicator {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #ddd;
+      display: inline-block;
+      margin-left: 10px;
+      vertical-align: middle;
+    }
+    .active-audio {
+      background: #4CAF50 !important;
+    }
   </style>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
@@ -116,23 +114,25 @@
     <div class="profile-pic">
       <i class="fas fa-user-tie"></i>
     </div>
-    <h1 class="profile-name">Abdulhakeem M</h1>
-    <p class="profile-title">CEO</p>
+    <h1>Voice Call App</h1>
     <button id="start-call">
-      <i class="fas fa-phone"></i> Start Call
+      <i class="fas fa-phone"></i> Start New Call
     </button>
     <button id="show-join">
-      <i class="fas fa-phone-volume"></i> Join Call
+      <i class="fas fa-phone-volume"></i> Join Existing Call
     </button>
   </div>
 
   <!-- Caller Screen -->
   <div id="caller-view" class="screen">
     <div class="profile-pic">
-      <i class="fas fa-user-tie"></i>
+      <i class="fas fa-phone"></i>
     </div>
-    <h1>Abdulhakeem M</h1>
-    <p class="status" id="call-status">Calling...</p>
+    <h1>Active Call</h1>
+    <p class="status">
+      Your audio: <span id="local-audio-indicator"></span>
+      Their audio: <span id="remote-audio-indicator"></span>
+    </p>
     
     <div class="token-display" id="call-token"></div>
     <p>Share this code with the other party</p>
@@ -154,7 +154,7 @@
   <!-- Join Screen -->
   <div id="join-view" class="screen">
     <div class="profile-pic">
-      <i class="fas fa-user-tie"></i>
+      <i class="fas fa-phone"></i>
     </div>
     <h1>Join Call</h1>
     <p>Enter the 6-digit call code:</p>
@@ -171,9 +171,13 @@
     const APP_ID = "974f4c7b124940a1a6ee5e526175118d";
     let client;
     let localTracks = [];
+    let remoteTracks = [];
     let currentChannel = "";
     let isMuted = false;
     let isSpeaker = false;
+    let audioContext;
+    let localAnalyser;
+    let remoteAnalyser;
 
     // DOM elements
     const profileView = document.getElementById('profile-view');
@@ -189,6 +193,53 @@
     const startCallBtn = document.getElementById('start-call');
     const showJoinBtn = document.getElementById('show-join');
     const endCallBtn = document.getElementById('end-call');
+    const localAudioIndicator = document.getElementById('local-audio-indicator');
+    const remoteAudioIndicator = document.getElementById('remote-audio-indicator');
+
+    // Audio level detection
+    function setupAudioAnalyser() {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      
+      // Local audio analyser
+      if (localTracks && localTracks.getAudioTrack) {
+        const source = audioContext.createMediaStreamSource(new MediaStream([localTracks.getAudioTrack()]));
+        localAnalyser = audioContext.createAnalyser();
+        localAnalyser.fftSize = 32;
+        source.connect(localAnalyser);
+      }
+      
+      // Remote audio analyser
+      if (remoteTracks && remoteTracks.getAudioTrack) {
+        const remoteSource = audioContext.createMediaStreamSource(new MediaStream([remoteTracks.getAudioTrack()]));
+        remoteAnalyser = audioContext.createAnalyser();
+        remoteAnalyser.fftSize = 32;
+        remoteSource.connect(remoteAnalyser);
+      }
+      
+      // Start visualization
+      visualizeAudio();
+    }
+
+    function visualizeAudio() {
+      if (!audioContext) return;
+      
+      const localDataArray = new Uint8Array(localAnalyser?.frequencyBinCount || 0);
+      const remoteDataArray = new Uint8Array(remoteAnalyser?.frequencyBinCount || 0);
+      
+      if (localAnalyser) {
+        localAnalyser.getByteFrequencyData(localDataArray);
+        const localVolume = Math.max(...localDataArray);
+        localAudioIndicator.classList.toggle('active-audio', localVolume > 10 && !isMuted);
+      }
+      
+      if (remoteAnalyser) {
+        remoteAnalyser.getByteFrequencyData(remoteDataArray);
+        const remoteVolume = Math.max(...remoteDataArray);
+        remoteAudioIndicator.classList.toggle('active-audio', remoteVolume > 10);
+      }
+      
+      requestAnimationFrame(visualizeAudio);
+    }
 
     // Generate a 6-digit token
     function generateToken() {
@@ -219,13 +270,14 @@
         client.on("user-published", async (user, mediaType) => {
           await client.subscribe(user, mediaType);
           if (mediaType === "audio") {
+            remoteTracks = user.audioTrack;
             user.audioTrack.play();
-            callStatus.textContent = "Connected - Live conversation";
+            setupAudioAnalyser();
           }
         });
         
         client.on("user-unpublished", () => {
-          callStatus.textContent = "Other party left the call";
+          remoteTracks = null;
           setTimeout(leaveChannel, 2000);
         });
         
@@ -245,6 +297,9 @@
         if (client) {
           await client.leave();
         }
+        if (audioContext) {
+          await audioContext.close();
+        }
         showScreen('profile-view');
       } catch (error) {
         console.error("Error leaving channel:", error);
@@ -260,24 +315,15 @@
       }
     }
 
-    // Toggle speaker
-    function toggleSpeaker() {
-      // Note: Browser security restrictions may limit speaker control
-      isSpeaker = !isSpeaker;
-      speakerBtn.innerHTML = isSpeaker ? '<i class="fas fa-volume-mute"></i>' : '<i class="fas fa-volume-up"></i>';
-      alert("Speaker control may be limited in browsers. For best results, adjust your device volume.");
-    }
-
     // Start a new call
     async function startCall() {
       const token = generateToken();
       callTokenDisplay.textContent = token;
       showScreen('caller-view');
-      callStatus.textContent = "Initializing call...";
       
       const success = await joinChannel(`voice-call-${token}`);
       if (!success) {
-        callStatus.textContent = "Failed to start call";
+        alert("Failed to start call. Please check your microphone permissions.");
       }
     }
 
@@ -293,13 +339,11 @@
       joinStatus.textContent = "Connecting...";
       showScreen('caller-view');
       callTokenDisplay.textContent = token;
-      callStatus.textContent = "Joining call...";
       
       const success = await joinChannel(`voice-call-${token}`);
       if (!success) {
-        callStatus.textContent = "Failed to join call";
+        joinStatus.textContent = "Failed to join call";
         showScreen('join-view');
-        joinStatus.textContent = "Invalid code or network error";
       }
     }
 
@@ -309,7 +353,6 @@
     joinBtn.addEventListener('click', joinExistingCall);
     endCallBtn.addEventListener('click', leaveChannel);
     muteBtn.addEventListener('click', toggleMute);
-    speakerBtn.addEventListener('click', toggleSpeaker);
 
     // Show join screen if URL has token
     const urlParams = new URLSearchParams(window.location.search);
