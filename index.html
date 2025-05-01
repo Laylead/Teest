@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Privileged Voice Call</title>
+  <title>Full Two-Way Voice Call</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
@@ -76,11 +76,11 @@
     .active-audio {
       background: #4CAF50;
     }
-    .privilege-section {
-      margin: 20px 0;
-      padding: 15px;
+    .connection-status {
+      margin: 10px 0;
+      padding: 8px;
+      border-radius: 4px;
       background: #e9ecef;
-      border-radius: 8px;
     }
   </style>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -103,19 +103,13 @@
       <i class="fas fa-phone"></i>
     </div>
     <h2>Active Call</h2>
+    <div class="connection-status" id="connection-status">Connecting...</div>
     <p class="status">
       You: <span id="local-audio-indicator" class="audio-indicator"></span>
       | Them: <span id="remote-audio-indicator" class="audio-indicator"></span>
     </p>
     <div class="token-display" id="call-token"></div>
     <p>Share this code to invite others</p>
-    
-    <div class="privilege-section" id="privilege-section" style="display:none;">
-      <h3>Grant Full Privileges</h3>
-      <div class="token-display" id="privilege-token"></div>
-      <p>Share this privilege token to enable two-way audio</p>
-    </div>
-    
     <button id="mute-btn">Mute</button>
     <button id="end-call">End Call</button>
   </div>
@@ -126,16 +120,9 @@
       <i class="fas fa-phone"></i>
     </div>
     <h2>Join a Call</h2>
-    <p>Enter the call code:</p>
+    <p>Enter the 6-digit call code:</p>
     <input type="text" id="token-input" maxlength="6" placeholder="123456">
     <button id="join-btn">Join Call</button>
-    
-    <div id="privilege-input" style="display:none; margin-top:20px;">
-      <p>Enter privilege token for full access:</p>
-      <input type="text" id="privilege-token-input" placeholder="PRIV-123456">
-      <button id="upgrade-btn">Upgrade Privileges</button>
-    </div>
-    
     <p class="status" id="join-status"></p>
   </div>
 
@@ -150,21 +137,16 @@
     let isMuted = false;
     let audioContext;
     let localAnalyser, remoteAnalyser;
-    let privilegeToken = "";
 
     // DOM elements
     const profileView = document.getElementById('profile-view');
     const callerView = document.getElementById('caller-view');
     const joinView = document.getElementById('join-view');
     const callTokenDisplay = document.getElementById('call-token');
-    const privilegeTokenDisplay = document.getElementById('privilege-token');
-    const privilegeSection = document.getElementById('privilege-section');
     const tokenInput = document.getElementById('token-input');
-    const privilegeInput = document.getElementById('privilege-input');
-    const privilegeTokenInput = document.getElementById('privilege-token-input');
     const joinBtn = document.getElementById('join-btn');
-    const upgradeBtn = document.getElementById('upgrade-btn');
     const joinStatus = document.getElementById('join-status');
+    const connectionStatus = document.getElementById('connection-status');
     const startCallBtn = document.getElementById('start-call');
     const showJoinBtn = document.getElementById('show-join');
     const endCallBtn = document.getElementById('end-call');
@@ -172,10 +154,9 @@
     const localAudioIndicator = document.getElementById('local-audio-indicator');
     const remoteAudioIndicator = document.getElementById('remote-audio-indicator');
 
-    // Generate a token
-    function generateToken(prefix = "") {
-      const randomNum = Math.floor(100000 + Math.random() * 900000);
-      return prefix ? `${prefix}-${randomNum}` : randomNum.toString();
+    // Generate a 6-digit token
+    function generateToken() {
+      return Math.floor(100000 + Math.random() * 900000).toString();
     }
 
     // Show a specific screen
@@ -184,6 +165,11 @@
         el.classList.remove('active');
       });
       document.getElementById(screen).classList.add('active');
+    }
+
+    // Update connection status
+    function updateStatus(message) {
+      connectionStatus.textContent = message;
     }
 
     // Initialize audio analysis
@@ -229,45 +215,53 @@
       requestAnimationFrame(visualizeAudio);
     }
 
-    // Join channel with privileges
-    async function joinChannel(channelName, isPrivileged = false) {
+    // Initialize Agora client and join channel
+    async function joinChannel(channelName) {
       client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
       
       try {
+        updateStatus("Connecting to channel...");
+        
         // Join the channel
         await client.join(APP_ID, channelName, null, null);
         
-        if (isPrivileged) {
-          // Create and publish local audio track
-          localTracks = await AgoraRTC.createMicrophoneAudioTrack();
-          await client.publish([localTracks]);
-        }
+        updateStatus("Creating audio track...");
+        // Create and publish local audio track
+        localTracks = await AgoraRTC.createMicrophoneAudioTrack();
+        await client.publish([localTracks]);
+        
+        updateStatus("Waiting for other participant...");
         
         // Set up remote user handling
         client.on("user-published", async (user, mediaType) => {
-          await client.subscribe(user, mediaType);
           if (mediaType === "audio") {
+            updateStatus("Participant joined - subscribing...");
+            await client.subscribe(user, mediaType);
             remoteUser = user;
             user.audioTrack.play();
+            updateStatus("Call connected - two-way audio active");
             initAudioAnalysis();
-            
-            // If caller, generate privilege token after connection
-            if (privilegeSection.style.display === "none" && isPrivileged) {
-              privilegeToken = generateToken("PRIV");
-              privilegeTokenDisplay.textContent = privilegeToken;
-              privilegeSection.style.display = "block";
-            }
           }
         });
         
         client.on("user-unpublished", () => {
+          updateStatus("Other participant left");
           remoteUser = null;
-          setTimeout(leaveChannel, 2000);
+        });
+        
+        client.on("connection-state-change", (state) => {
+          console.log("Connection state:", state);
+          if (state === "CONNECTED") {
+            updateStatus("Fully connected - two-way audio active");
+          } else if (state === "DISCONNECTED") {
+            updateStatus("Connection lost - attempting to reconnect");
+          }
         });
         
         return true;
       } catch (error) {
         console.error("Error joining channel:", error);
+        updateStatus("Connection failed: " + error.message);
         return false;
       }
     }
@@ -275,6 +269,7 @@
     // Leave the channel
     async function leaveChannel() {
       try {
+        updateStatus("Ending call...");
         if (localTracks) {
           localTracks.close();
         }
@@ -284,6 +279,7 @@
         if (audioContext) {
           await audioContext.close();
         }
+        updateStatus("Call ended");
         showScreen('profile-view');
       } catch (error) {
         console.error("Error leaving channel:", error);
@@ -296,6 +292,7 @@
         isMuted = !isMuted;
         localTracks.setMuted(isMuted);
         muteBtn.textContent = isMuted ? "Unmute" : "Mute";
+        updateStatus(isMuted ? "Microphone muted" : "Microphone active");
       }
     }
 
@@ -305,8 +302,7 @@
       callTokenDisplay.textContent = token;
       showScreen('caller-view');
       
-      // Join as privileged user (can speak)
-      const success = await joinChannel(`voice-call-${token}`, true);
+      const success = await joinChannel(`voice-call-${token}`);
       if (!success) {
         alert("Failed to start call. Please check your microphone permissions.");
         showScreen('profile-view');
@@ -324,37 +320,12 @@
       
       joinStatus.textContent = "Connecting...";
       
-      // Join as listener first (can't speak)
       const success = await joinChannel(`voice-call-${token}`);
       if (success) {
         showScreen('caller-view');
         callTokenDisplay.textContent = token;
-        privilegeInput.style.display = "block";
       } else {
         joinStatus.textContent = "Failed to join call. Invalid code or network error.";
-      }
-    }
-
-    // Upgrade privileges
-    async function upgradePrivileges() {
-      const token = privilegeTokenInput.value.trim();
-      
-      if (token !== privilegeToken) {
-        joinStatus.textContent = "Invalid privilege token";
-        return;
-      }
-      
-      joinStatus.textContent = "Upgrading privileges...";
-      
-      // Leave current channel
-      await leaveChannel();
-      
-      // Rejoin with privileges
-      const success = await joinChannel(`voice-call-${callTokenDisplay.textContent}`, true);
-      if (success) {
-        joinStatus.textContent = "Privileges upgraded! You can now speak.";
-      } else {
-        joinStatus.textContent = "Failed to upgrade privileges";
       }
     }
 
@@ -362,7 +333,6 @@
     startCallBtn.addEventListener('click', startCall);
     showJoinBtn.addEventListener('click', () => showScreen('join-view'));
     joinBtn.addEventListener('click', joinExistingCall);
-    upgradeBtn.addEventListener('click', upgradePrivileges);
     endCallBtn.addEventListener('click', leaveChannel);
     muteBtn.addEventListener('click', toggleMute);
 
