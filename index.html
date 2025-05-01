@@ -42,13 +42,17 @@
       margin: 10px;
       cursor: pointer;
     }
+    button:focus {
+      outline: 2px solid #2196F3;
+    }
     #end-call {
       background: #f44336;
     }
     input {
       padding: 10px;
       font-size: 16px;
-      width: 200px;
+      width: 80%;
+      max-width: 250px;
       text-align: center;
       letter-spacing: 3px;
       border: 1px solid #ddd;
@@ -86,18 +90,15 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
-
-  <!-- Profile Screen -->
   <div id="profile-view" class="screen active">
     <div class="profile-pic">
       <i class="fas fa-user-tie"></i>
     </div>
     <h2>Voice Call App</h2>
-    <button id="start-call">Start New Call</button>
-    <button id="show-join">Join Existing Call</button>
+    <button id="start-call" aria-label="Start a new voice call">Start New Call</button>
+    <button id="show-join" aria-label="Join an existing voice call">Join Existing Call</button>
   </div>
 
-  <!-- Caller Screen -->
   <div id="caller-view" class="screen">
     <div class="profile-pic">
       <i class="fas fa-phone"></i>
@@ -110,35 +111,31 @@
     </p>
     <div class="token-display" id="call-token"></div>
     <p>Share this code to invite others</p>
-    <button id="mute-btn">Mute</button>
-    <button id="end-call">End Call</button>
+    <button id="mute-btn" aria-label="Toggle mute">Mute</button>
+    <button id="end-call" aria-label="End Call">End Call</button>
   </div>
 
-  <!-- Join Screen -->
   <div id="join-view" class="screen">
     <div class="profile-pic">
       <i class="fas fa-phone"></i>
     </div>
     <h2>Join a Call</h2>
     <p>Enter the 6-digit call code:</p>
-    <input type="text" id="token-input" maxlength="6" placeholder="123456">
-    <button id="join-btn">Join Call</button>
+    <input type="text" id="token-input" maxlength="6" placeholder="123456" aria-label="Enter 6-digit call code">
+    <button id="join-btn" aria-label="Join Call">Join Call</button>
     <p class="status" id="join-status"></p>
   </div>
 
   <script src="https://cdn.agora.io/sdk/release/AgoraRTC_N-4.19.0.js"></script>
   <script>
-    // Configuration
     const APP_ID = "974f4c7b124940a1a6ee5e526175118d";
     let client;
-    let localTracks = [];
-    let remoteUser = null;
-    let currentChannel = "";
+    let localTracks;
+    let remoteUsers = new Map();
     let isMuted = false;
     let audioContext;
     let localAnalyser, remoteAnalyser;
 
-    // DOM elements
     const profileView = document.getElementById('profile-view');
     const callerView = document.getElementById('caller-view');
     const joinView = document.getElementById('join-view');
@@ -154,110 +151,95 @@
     const localAudioIndicator = document.getElementById('local-audio-indicator');
     const remoteAudioIndicator = document.getElementById('remote-audio-indicator');
 
-    // Generate a 6-digit token
     function generateToken() {
       return Math.floor(100000 + Math.random() * 900000).toString();
     }
 
-    // Show a specific screen
     function showScreen(screen) {
-      document.querySelectorAll('.screen').forEach(el => {
-        el.classList.remove('active');
-      });
+      document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
       document.getElementById(screen).classList.add('active');
     }
 
-    // Update connection status
     function updateStatus(message) {
       connectionStatus.textContent = message;
     }
 
-    // Initialize audio analysis
     function initAudioAnalysis() {
       audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      
-      // Local audio analyser
-      if (localTracks && localTracks.getAudioTrack) {
-        const source = audioContext.createMediaStreamSource(new MediaStream([localTracks.getAudioTrack()]));
+
+      if (localTracks && localTracks.getMediaStreamTrack) {
+        const source = audioContext.createMediaStreamSource(new MediaStream([localTracks.getMediaStreamTrack()]));
         localAnalyser = audioContext.createAnalyser();
         localAnalyser.fftSize = 32;
         source.connect(localAnalyser);
       }
-      
-      // Remote audio analyser
-      if (remoteUser && remoteUser.audioTrack) {
-        const remoteSource = audioContext.createMediaStreamSource(new MediaStream([remoteUser.audioTrack.getMediaStreamTrack()]));
+
+      const tracks = Array.from(remoteUsers.values());
+      if (tracks.length > 0) {
+        const remoteSource = audioContext.createMediaStreamSource(new MediaStream([tracks[0].getMediaStreamTrack()]));
         remoteAnalyser = audioContext.createAnalyser();
         remoteAnalyser.fftSize = 32;
         remoteSource.connect(remoteAnalyser);
       }
-      
+
       visualizeAudio();
     }
 
-    // Visualize audio activity
     function visualizeAudio() {
       const localDataArray = new Uint8Array(localAnalyser?.frequencyBinCount || 0);
       const remoteDataArray = new Uint8Array(remoteAnalyser?.frequencyBinCount || 0);
-      
+
       if (localAnalyser) {
         localAnalyser.getByteFrequencyData(localDataArray);
         const localVolume = Math.max(...localDataArray);
         localAudioIndicator.classList.toggle('active-audio', localVolume > 10 && !isMuted);
       }
-      
+
       if (remoteAnalyser) {
         remoteAnalyser.getByteFrequencyData(remoteDataArray);
         const remoteVolume = Math.max(...remoteDataArray);
         remoteAudioIndicator.classList.toggle('active-audio', remoteVolume > 10);
       }
-      
+
       requestAnimationFrame(visualizeAudio);
     }
 
-    // Initialize Agora client and join channel
     async function joinChannel(channelName) {
       client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-      
+
       try {
         updateStatus("Connecting to channel...");
-        
-        // Join the channel
-        await client.join(APP_ID, channelName, null, null);
-        
+
+        const token = null; // Replace with actual token from your server
+        await client.join(APP_ID, channelName, token, null);
+
         updateStatus("Creating audio track...");
-        // Create and publish local audio track
         localTracks = await AgoraRTC.createMicrophoneAudioTrack();
         await client.publish([localTracks]);
-        
-        updateStatus("Waiting for other participant...");
-        
-        // Set up remote user handling
+
+        updateStatus("Waiting for other participant(s)...");
+
         client.on("user-published", async (user, mediaType) => {
           if (mediaType === "audio") {
             updateStatus("Participant joined - subscribing...");
             await client.subscribe(user, mediaType);
-            remoteUser = user;
             user.audioTrack.play();
-            updateStatus("Call connected - two-way audio active");
+            remoteUsers.set(user.uid, user.audioTrack);
+            updateStatus("Call connected - audio active");
             initAudioAnalysis();
           }
         });
-        
-        client.on("user-unpublished", () => {
-          updateStatus("Other participant left");
-          remoteUser = null;
+
+        client.on("user-unpublished", (user) => {
+          updateStatus("A participant left");
+          remoteUsers.delete(user.uid);
         });
-        
+
         client.on("connection-state-change", (state) => {
-          console.log("Connection state:", state);
-          if (state === "CONNECTED") {
-            updateStatus("Fully connected - two-way audio active");
-          } else if (state === "DISCONNECTED") {
-            updateStatus("Connection lost - attempting to reconnect");
-          }
+          if (state === "CONNECTED") updateStatus("Fully connected - audio active");
+          else if (state === "DISCONNECTED") updateStatus("Connection lost - trying to reconnect...");
         });
-        
+
         return true;
       } catch (error) {
         console.error("Error joining channel:", error);
@@ -266,19 +248,13 @@
       }
     }
 
-    // Leave the channel
     async function leaveChannel() {
       try {
         updateStatus("Ending call...");
-        if (localTracks) {
-          localTracks.close();
-        }
-        if (client) {
-          await client.leave();
-        }
-        if (audioContext) {
-          await audioContext.close();
-        }
+        if (localTracks) localTracks.close();
+        if (client) await client.leave();
+        if (audioContext) await audioContext.close();
+        remoteUsers.clear();
         updateStatus("Call ended");
         showScreen('profile-view');
       } catch (error) {
@@ -286,7 +262,6 @@
       }
     }
 
-    // Toggle mute
     function toggleMute() {
       if (localTracks) {
         isMuted = !isMuted;
@@ -296,12 +271,10 @@
       }
     }
 
-    // Start a new call
     async function startCall() {
       const token = generateToken();
       callTokenDisplay.textContent = token;
       showScreen('caller-view');
-      
       const success = await joinChannel(`voice-call-${token}`);
       if (!success) {
         alert("Failed to start call. Please check your microphone permissions.");
@@ -309,17 +282,13 @@
       }
     }
 
-    // Join an existing call
     async function joinExistingCall() {
       const token = tokenInput.value.trim();
-      
-      if (!/^\d{6}$/.test(token)) {
+      if (!/^[0-9]{6}$/.test(token)) {
         joinStatus.textContent = "Please enter a valid 6-digit code";
         return;
       }
-      
       joinStatus.textContent = "Connecting...";
-      
       const success = await joinChannel(`voice-call-${token}`);
       if (success) {
         showScreen('caller-view');
@@ -329,14 +298,12 @@
       }
     }
 
-    // Event listeners
     startCallBtn.addEventListener('click', startCall);
     showJoinBtn.addEventListener('click', () => showScreen('join-view'));
     joinBtn.addEventListener('click', joinExistingCall);
     endCallBtn.addEventListener('click', leaveChannel);
     muteBtn.addEventListener('click', toggleMute);
 
-    // Show join screen if URL has token
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has('token')) {
       tokenInput.value = urlParams.get('token');
