@@ -12,8 +12,12 @@
       text-align: center;
       background: #f5f5f5;
     }
-    .screen { display: none; }
-    .active { display: block; }
+    .screen {
+      display: none;
+    }
+    .active {
+      display: block;
+    }
     .profile-pic {
       width: 120px;
       height: 120px;
@@ -38,7 +42,9 @@
       margin: 10px;
       cursor: pointer;
     }
-    #end-call { background: #f44336; }
+    #end-call {
+      background: #f44336;
+    }
     input {
       padding: 10px;
       font-size: 16px;
@@ -59,15 +65,6 @@
       margin: 20px 0;
       color: #666;
     }
-    .audio-indicator {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      display: inline-block;
-      margin-left: 5px;
-      background: #ddd;
-    }
-    .active-audio { background: #4CAF50; }
     .connection-status {
       margin: 10px 0;
       padding: 8px;
@@ -96,10 +93,6 @@
     </div>
     <h2>Active Call</h2>
     <div class="connection-status" id="connection-status">Connecting...</div>
-    <p class="status">
-      You: <span id="local-audio-indicator" class="audio-indicator"></span>
-      | Them: <span id="remote-audio-indicator" class="audio-indicator"></span>
-    </p>
     <div class="token-display" id="call-token"></div>
     <p>Share this code to invite others</p>
     <button id="mute-btn">Mute</button>
@@ -123,12 +116,9 @@
     const APP_ID = "974f4c7b124940a1a6ee5e526175118d";
     let client;
     let localTrack;
-    let remoteUser = null;
-    let currentChannel = "";
     let isMuted = false;
-    let audioContext;
-    let localAnalyser, remoteAnalyser;
 
+    // DOM Elements
     const profileView = document.getElementById('profile-view');
     const callerView = document.getElementById('caller-view');
     const joinView = document.getElementById('join-view');
@@ -141,116 +131,61 @@
     const showJoinBtn = document.getElementById('show-join');
     const endCallBtn = document.getElementById('end-call');
     const muteBtn = document.getElementById('mute-btn');
-    const localAudioIndicator = document.getElementById('local-audio-indicator');
-    const remoteAudioIndicator = document.getElementById('remote-audio-indicator');
 
     function generateToken() {
       return Math.floor(100000 + Math.random() * 900000).toString();
     }
 
-    function showScreen(screen) {
+    function showScreen(screenId) {
       document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
-      document.getElementById(screen).classList.add('active');
+      document.getElementById(screenId).classList.add('active');
     }
 
     function updateStatus(message) {
       connectionStatus.textContent = message;
     }
 
-    function initAudioAnalysis() {
-      audioContext = new (window.AudioContext || window.webkitAudioContext)();
-
-      if (localTrack) {
-        const source = audioContext.createMediaStreamSource(new MediaStream([localTrack.getMediaStreamTrack()]));
-        localAnalyser = audioContext.createAnalyser();
-        localAnalyser.fftSize = 32;
-        source.connect(localAnalyser);
-      }
-
-      if (remoteUser && remoteUser.audioTrack) {
-        const remoteSource = audioContext.createMediaStreamSource(new MediaStream([remoteUser.audioTrack.getMediaStreamTrack()]));
-        remoteAnalyser = audioContext.createAnalyser();
-        remoteAnalyser.fftSize = 32;
-        remoteSource.connect(remoteAnalyser);
-      }
-
-      visualizeAudio();
-    }
-
-    function visualizeAudio() {
-      const localDataArray = new Uint8Array(localAnalyser?.frequencyBinCount || 0);
-      const remoteDataArray = new Uint8Array(remoteAnalyser?.frequencyBinCount || 0);
-
-      if (localAnalyser) {
-        localAnalyser.getByteFrequencyData(localDataArray);
-        const localVolume = Math.max(...localDataArray);
-        localAudioIndicator.classList.toggle('active-audio', localVolume > 10 && !isMuted);
-      }
-
-      if (remoteAnalyser) {
-        remoteAnalyser.getByteFrequencyData(remoteDataArray);
-        const remoteVolume = Math.max(...remoteDataArray);
-        remoteAudioIndicator.classList.toggle('active-audio', remoteVolume > 10);
-      }
-
-      requestAnimationFrame(visualizeAudio);
-    }
-
     async function joinChannel(channelName) {
       client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
+      client.on("user-published", async (user, mediaType) => {
+        if (mediaType === "audio") {
+          await client.subscribe(user, mediaType);
+          user.audioTrack.play(); // Play only remote audio
+          updateStatus("Call connected - two-way audio active");
+        }
+      });
+
+      client.on("user-unpublished", () => {
+        updateStatus("Other participant left");
+      });
+
       try {
-        updateStatus("Connecting to channel...");
+        updateStatus("Joining...");
         await client.join(APP_ID, channelName, null, null);
-
-        updateStatus("Creating audio track...");
         localTrack = await AgoraRTC.createMicrophoneAudioTrack();
-        await client.publish([localTrack]);
-
+        await client.publish([localTrack]); // Publish local audio only
         updateStatus("Waiting for other participant...");
-
-        client.on("user-published", async (user, mediaType) => {
-          if (mediaType === "audio") {
-            updateStatus("Participant joined - subscribing...");
-            await client.subscribe(user, mediaType);
-            remoteUser = user;
-            user.audioTrack.play();
-            updateStatus("Call connected - two-way audio active");
-            initAudioAnalysis();
-          }
-        });
-
-        client.on("user-unpublished", () => {
-          updateStatus("Other participant left");
-          remoteUser = null;
-        });
-
-        client.on("connection-state-change", (state) => {
-          if (state === "CONNECTED") {
-            updateStatus("Connected - two-way audio");
-          } else if (state === "DISCONNECTED") {
-            updateStatus("Connection lost - trying to reconnect...");
-          }
-        });
-
         return true;
-      } catch (error) {
-        console.error("Error joining channel:", error);
-        updateStatus("Connection failed: " + error.message);
+      } catch (err) {
+        console.error(err);
+        updateStatus("Failed: " + err.message);
         return false;
       }
     }
 
     async function leaveChannel() {
       try {
-        updateStatus("Ending call...");
-        if (localTrack) localTrack.close();
-        if (client) await client.leave();
-        if (audioContext) await audioContext.close();
+        if (localTrack) {
+          localTrack.close();
+        }
+        if (client) {
+          await client.leave();
+        }
         updateStatus("Call ended");
-        showScreen('profile-view');
-      } catch (error) {
-        console.error("Error leaving channel:", error);
+        showScreen("profile-view");
+      } catch (err) {
+        console.error("Leave error:", err);
       }
     }
 
@@ -266,42 +201,40 @@
     async function startCall() {
       const token = generateToken();
       callTokenDisplay.textContent = token;
-      showScreen('caller-view');
-
-      const success = await joinChannel(`voice-call-${token}`);
+      showScreen("caller-view");
+      const success = await joinChannel("voice-call-" + token);
       if (!success) {
-        alert("Failed to start call. Check microphone permissions.");
-        showScreen('profile-view');
+        alert("Failed to start call. Check your mic permission.");
+        showScreen("profile-view");
       }
     }
 
     async function joinExistingCall() {
       const token = tokenInput.value.trim();
       if (!/^\d{6}$/.test(token)) {
-        joinStatus.textContent = "Please enter a valid 6-digit code";
+        joinStatus.textContent = "Enter a valid 6-digit code";
         return;
       }
-
       joinStatus.textContent = "Connecting...";
-      const success = await joinChannel(`voice-call-${token}`);
+      const success = await joinChannel("voice-call-" + token);
       if (success) {
-        showScreen('caller-view');
+        showScreen("caller-view");
         callTokenDisplay.textContent = token;
       } else {
-        joinStatus.textContent = "Failed to join call. Invalid code or network error.";
+        joinStatus.textContent = "Failed to join. Invalid code or mic permission.";
       }
     }
 
-    startCallBtn.addEventListener('click', startCall);
-    showJoinBtn.addEventListener('click', () => showScreen('join-view'));
-    joinBtn.addEventListener('click', joinExistingCall);
-    endCallBtn.addEventListener('click', leaveChannel);
-    muteBtn.addEventListener('click', toggleMute);
+    startCallBtn.addEventListener("click", startCall);
+    showJoinBtn.addEventListener("click", () => showScreen("join-view"));
+    joinBtn.addEventListener("click", joinExistingCall);
+    endCallBtn.addEventListener("click", leaveChannel);
+    muteBtn.addEventListener("click", toggleMute);
 
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('token')) {
-      tokenInput.value = urlParams.get('token');
-      showScreen('join-view');
+    if (urlParams.has("token")) {
+      tokenInput.value = urlParams.get("token");
+      showScreen("join-view");
     }
   </script>
 </body>
