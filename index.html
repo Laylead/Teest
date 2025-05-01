@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Dual-Token Voice Call</title>
+  <title>Fixed Dual-Token Voice Call</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
@@ -89,6 +89,19 @@
     .token-input-group {
       margin: 15px 0;
     }
+    .connection-status {
+      margin: 10px 0;
+      padding: 8px;
+      border-radius: 4px;
+    }
+    .connected {
+      background: #d4edda;
+      color: #155724;
+    }
+    .disconnected {
+      background: #f8d7da;
+      color: #721c24;
+    }
   </style>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
@@ -110,6 +123,7 @@
       <i class="fas fa-phone"></i>
     </div>
     <h2>Active Call</h2>
+    <div id="connection-status" class="connection-status">Connecting...</div>
     <p class="status">
       You: <span id="local-audio-indicator" class="audio-indicator"></span>
       | Them: <span id="remote-audio-indicator" class="audio-indicator"></span>
@@ -151,11 +165,12 @@
     // Configuration
     const APP_ID = "974f4c7b124940a1a6ee5e526175118d";
     let speakerClient, listenerClient;
-    let localTracks = [];
-    let remoteTracks = [];
+    let localAudioTrack, remoteAudioTrack;
     let isMuted = false;
     let audioContext;
     let localAnalyser, remoteAnalyser;
+    let connectionAttempts = 0;
+    const MAX_CONNECTION_ATTEMPTS = 3;
 
     // DOM elements
     const profileView = document.getElementById('profile-view');
@@ -173,6 +188,7 @@
     const muteBtn = document.getElementById('mute-btn');
     const localAudioIndicator = document.getElementById('local-audio-indicator');
     const remoteAudioIndicator = document.getElementById('remote-audio-indicator');
+    const connectionStatus = document.getElementById('connection-status');
 
     // Generate token with prefix
     function generateToken(prefix) {
@@ -187,82 +203,132 @@
       document.getElementById(screen).classList.add('active');
     }
 
+    // Update connection status
+    function updateConnectionStatus(message, isConnected) {
+      connectionStatus.textContent = message;
+      connectionStatus.className = `connection-status ${isConnected ? 'connected' : 'disconnected'}`;
+    }
+
     // Initialize audio analysis
     function initAudioAnalysis() {
-      audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      
-      // Local audio analyser
-      if (localTracks && localTracks.getAudioTrack) {
-        const source = audioContext.createMediaStreamSource(new MediaStream([localTracks.getAudioTrack()]));
-        localAnalyser = audioContext.createAnalyser();
-        localAnalyser.fftSize = 32;
-        source.connect(localAnalyser);
+      try {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Local audio analyser
+        if (localAudioTrack) {
+          const source = audioContext.createMediaStreamSource(new MediaStream([localAudioTrack.getMediaStreamTrack()]));
+          localAnalyser = audioContext.createAnalyser();
+          localAnalyser.fftSize = 32;
+          source.connect(localAnalyser);
+        }
+        
+        // Remote audio analyser
+        if (remoteAudioTrack) {
+          const remoteSource = audioContext.createMediaStreamSource(new MediaStream([remoteAudioTrack.getMediaStreamTrack()]));
+          remoteAnalyser = audioContext.createAnalyser();
+          remoteAnalyser.fftSize = 32;
+          remoteSource.connect(remoteAnalyser);
+        }
+        
+        visualizeAudio();
+      } catch (error) {
+        console.error("Audio context error:", error);
       }
-      
-      // Remote audio analyser
-      if (remoteTracks && remoteTracks.getAudioTrack) {
-        const remoteSource = audioContext.createMediaStreamSource(new MediaStream([remoteTracks.getAudioTrack()]));
-        remoteAnalyser = audioContext.createAnalyser();
-        remoteAnalyser.fftSize = 32;
-        remoteSource.connect(remoteAnalyser);
-      }
-      
-      visualizeAudio();
     }
 
     // Visualize audio activity
     function visualizeAudio() {
-      const localDataArray = new Uint8Array(localAnalyser?.frequencyBinCount || 0);
-      const remoteDataArray = new Uint8Array(remoteAnalyser?.frequencyBinCount || 0);
-      
-      if (localAnalyser) {
-        localAnalyser.getByteFrequencyData(localDataArray);
-        const localVolume = Math.max(...localDataArray);
-        localAudioIndicator.classList.toggle('active-audio', localVolume > 10 && !isMuted);
+      try {
+        const localDataArray = new Uint8Array(localAnalyser?.frequencyBinCount || 0);
+        const remoteDataArray = new Uint8Array(remoteAnalyser?.frequencyBinCount || 0);
+        
+        if (localAnalyser) {
+          localAnalyser.getByteFrequencyData(localDataArray);
+          const localVolume = Math.max(...localDataArray);
+          localAudioIndicator.classList.toggle('active-audio', localVolume > 10 && !isMuted);
+        }
+        
+        if (remoteAnalyser) {
+          remoteAnalyser.getByteFrequencyData(remoteDataArray);
+          const remoteVolume = Math.max(...remoteDataArray);
+          remoteAudioIndicator.classList.toggle('active-audio', remoteVolume > 10);
+        }
+        
+        requestAnimationFrame(visualizeAudio);
+      } catch (error) {
+        console.error("Visualization error:", error);
       }
-      
-      if (remoteAnalyser) {
-        remoteAnalyser.getByteFrequencyData(remoteDataArray);
-        const remoteVolume = Math.max(...remoteDataArray);
-        remoteAudioIndicator.classList.toggle('active-audio', remoteVolume > 10);
-      }
-      
-      requestAnimationFrame(visualizeAudio);
     }
 
-    // Join channel as speaker or listener
-    async function joinChannel(channelName, role) {
+    // Join channel with retry logic
+    async function joinChannelWithRetry(channelName, role) {
       const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
       
       try {
         await client.join(APP_ID, channelName, null, null);
+        updateConnectionStatus(`${role} channel connected`, true);
         
         if (role === 'speaker') {
-          localTracks = await AgoraRTC.createMicrophoneAudioTrack();
-          await client.publish([localTracks]);
+          localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+          await client.publish([localAudioTrack]);
         }
         
         client.on("user-published", async (user, mediaType) => {
           if (mediaType === "audio") {
             await client.subscribe(user, mediaType);
-            remoteTracks = user.audioTrack;
+            remoteAudioTrack = user.audioTrack;
             user.audioTrack.play();
+            updateConnectionStatus("Call connected - Audio active", true);
             initAudioAnalysis();
+          }
+        });
+        
+        client.on("user-unpublished", () => {
+          updateConnectionStatus("Other party disconnected", false);
+          remoteAudioTrack = null;
+        });
+        
+        client.on("connection-state-change", (state) => {
+          console.log(`${role} connection state:`, state);
+          if (state === 'DISCONNECTED') {
+            updateConnectionStatus("Connection lost - attempting to reconnect", false);
+            setTimeout(() => reconnectChannel(channelName, role, client), 2000);
           }
         });
         
         return client;
       } catch (error) {
         console.error(`Error joining ${role} channel:`, error);
-        return null;
+        if (connectionAttempts < MAX_CONNECTION_ATTEMPTS) {
+          connectionAttempts++;
+          updateConnectionStatus(`Retrying connection (attempt ${connectionAttempts})...`, false);
+          return new Promise(resolve => {
+            setTimeout(() => resolve(joinChannelWithRetry(channelName, role)), 2000);
+          });
+        } else {
+          updateConnectionStatus("Failed to connect after multiple attempts", false);
+          return null;
+        }
       }
+    }
+
+    // Reconnect to channel
+    async function reconnectChannel(channelName, role, oldClient) {
+      if (oldClient) {
+        try {
+          await oldClient.leave();
+        } catch (e) {
+          console.error("Error leaving old client:", e);
+        }
+      }
+      return joinChannelWithRetry(channelName, role);
     }
 
     // Leave all channels
     async function leaveChannels() {
       try {
-        if (localTracks) {
-          localTracks.close();
+        if (localAudioTrack) {
+          localAudioTrack.close();
         }
         if (speakerClient) {
           await speakerClient.leave();
@@ -273,17 +339,24 @@
         if (audioContext) {
           await audioContext.close();
         }
+        updateConnectionStatus("Call ended", false);
         showScreen('profile-view');
       } catch (error) {
         console.error("Error leaving channels:", error);
+      } finally {
+        localAudioTrack = null;
+        remoteAudioTrack = null;
+        speakerClient = null;
+        listenerClient = null;
+        connectionAttempts = 0;
       }
     }
 
     // Toggle mute
     function toggleMute() {
-      if (localTracks) {
+      if (localAudioTrack) {
         isMuted = !isMuted;
-        localTracks.setMuted(isMuted);
+        localAudioTrack.setMuted(isMuted);
         muteBtn.textContent = isMuted ? "Unmute" : "Mute";
       }
     }
@@ -297,9 +370,10 @@
       speakerTokenDisplay.textContent = mySpeakerToken;
       listenerTokenDisplay.textContent = myListenerToken;
       showScreen('caller-view');
+      updateConnectionStatus("Initializing call...", false);
       
       // Join as listener to receive audio from others
-      listenerClient = await joinChannel(`listen-${myListenerToken}`, 'listener');
+      listenerClient = await joinChannelWithRetry(`listen-${myListenerToken}`, 'listener');
       
       if (!listenerClient) {
         alert("Failed to initialize call listener");
@@ -318,17 +392,18 @@
       }
       
       joinStatus.textContent = "Connecting...";
+      showScreen('caller-view');
+      updateConnectionStatus("Connecting to call...", false);
       
       // Join as speaker to send audio to them
-      speakerClient = await joinChannel(`speak-${theirSpeakerToken}`, 'speaker');
+      speakerClient = await joinChannelWithRetry(`speak-${theirSpeakerToken}`, 'speaker');
       
       // Join as listener to receive audio from them
-      listenerClient = await joinChannel(`listen-${theirListenerToken}`, 'listener');
+      listenerClient = await joinChannelWithRetry(`listen-${theirListenerToken}`, 'listener');
       
-      if (speakerClient && listenerClient) {
-        showScreen('caller-view');
-      } else {
+      if (!speakerClient || !listenerClient) {
         joinStatus.textContent = "Failed to join call. Check tokens and connection.";
+        showScreen('join-view');
       }
     }
 
