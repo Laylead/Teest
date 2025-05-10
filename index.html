@@ -1,241 +1,63 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Full Two-Way Voice Call</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 500px;
-      margin: 0 auto;
-      padding: 20px;
-      text-align: center;
-      background: #f5f5f5;
-    }
-    .screen {
-      display: none;
-    }
-    .active {
-      display: block;
-    }
-    .profile-pic {
-      width: 120px;
-      height: 120px;
-      border-radius: 50%;
-      margin: 20px auto;
-      background: #e9ecef;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .profile-pic i {
-      font-size: 48px;
-      color: #495057;
-    }
-    button {
-      background: #4CAF50;
-      color: white;
-      border: none;
-      padding: 12px 20px;
-      border-radius: 4px;
-      font-size: 16px;
-      margin: 10px;
-      cursor: pointer;
-    }
-    #end-call {
-      background: #f44336;
-    }
-    input {
-      padding: 10px;
-      font-size: 16px;
-      width: 200px;
-      text-align: center;
-      letter-spacing: 3px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-    }
-    .token-display {
-      font-size: 24px;
-      letter-spacing: 3px;
-      margin: 20px 0;
-      color: #2196F3;
-      font-weight: bold;
-    }
-    .status {
-      margin: 20px 0;
-      color: #666;
-    }
-    .connection-status {
-      margin: 10px 0;
-      padding: 8px;
-      border-radius: 4px;
-      background: #e9ecef;
-    }
-  </style>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <title>Auto Call</title>
+    <script src="https://cdn.agora.io/sdk/release/AgoraRTC_N-4.19.0.js"></script>
+    <style>
+        body { font-family: Arial; text-align: center; padding: 20px; }
+        #video-container { width: 100%; max-width: 800px; margin: 0 auto; }
+        #local-video { width: 240px; height: 180px; background: #eee; }
+        #remote-video { width: 640px; height: 480px; background: #ddd; margin-top: 20px; }
+    </style>
 </head>
 <body>
-
-  <!-- Profile Screen -->
-  <div id="profile-view" class="screen active">
-    <div class="profile-pic">
-      <i class="fas fa-user-tie"></i>
+    <div id="video-container">
+        <div id="local-video"></div>
+        <div id="remote-video"></div>
+        <button id="call-btn">Join Call</button>
     </div>
-    <h2>Voice Call App</h2>
-    <button id="start-call">Start New Call</button>
-    <button id="show-join">Join Existing Call</button>
-  </div>
 
-  <!-- Caller Screen -->
-  <div id="caller-view" class="screen">
-    <div class="profile-pic">
-      <i class="fas fa-phone"></i>
-    </div>
-    <h2>Active Call</h2>
-    <div class="connection-status" id="connection-status">Connecting...</div>
-    <div class="token-display" id="call-token"></div>
-    <p>Share this code to invite others</p>
-    <button id="mute-btn">Mute</button>
-    <button id="end-call">End Call</button>
-  </div>
-
-  <!-- Join Screen -->
-  <div id="join-view" class="screen">
-    <div class="profile-pic">
-      <i class="fas fa-phone"></i>
-    </div>
-    <h2>Join a Call</h2>
-    <p>Enter the 6-digit call code:</p>
-    <input type="text" id="token-input" maxlength="6" placeholder="123456">
-    <button id="join-btn">Join Call</button>
-    <p class="status" id="join-status"></p>
-  </div>
-
-  <script src="https://cdn.agora.io/sdk/release/AgoraRTC_N-4.19.0.js"></script>
-  <script>
-    const APP_ID = "974f4c7b124940a1a6ee5e526175118d";
-    let client;
-    let localTrack;
-    let isMuted = false;
-
-    // DOM Elements
-    const profileView = document.getElementById('profile-view');
-    const callerView = document.getElementById('caller-view');
-    const joinView = document.getElementById('join-view');
-    const callTokenDisplay = document.getElementById('call-token');
-    const tokenInput = document.getElementById('token-input');
-    const joinBtn = document.getElementById('join-btn');
-    const joinStatus = document.getElementById('join-status');
-    const connectionStatus = document.getElementById('connection-status');
-    const startCallBtn = document.getElementById('start-call');
-    const showJoinBtn = document.getElementById('show-join');
-    const endCallBtn = document.getElementById('end-call');
-    const muteBtn = document.getElementById('mute-btn');
-
-    function generateToken() {
-      return Math.floor(100000 + Math.random() * 900000).toString();
-    }
-
-    function showScreen(screenId) {
-      document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
-      document.getElementById(screenId).classList.add('active');
-    }
-
-    function updateStatus(message) {
-      connectionStatus.textContent = message;
-    }
-
-    async function joinChannel(channelName) {
-      client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-
-      client.on("user-published", async (user, mediaType) => {
-        if (mediaType === "audio") {
-          await client.subscribe(user, mediaType);
-          user.audioTrack.play(); // Play only remote audio
-          updateStatus("Call connected - two-way audio active");
+    <script>
+        // Auto-join when page loads
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('token');
+        
+        if (token) {
+            document.getElementById('call-btn').click();
         }
-      });
 
-      client.on("user-unpublished", () => {
-        updateStatus("Other participant left");
-      });
-
-      try {
-        updateStatus("Joining...");
-        await client.join(APP_ID, channelName, null, null);
-        localTrack = await AgoraRTC.createMicrophoneAudioTrack();
-        await client.publish([localTrack]); // Publish local audio only
-        updateStatus("Waiting for other participant...");
-        return true;
-      } catch (err) {
-        console.error(err);
-        updateStatus("Failed: " + err.message);
-        return false;
-      }
-    }
-
-    async function leaveChannel() {
-      try {
-        if (localTrack) {
-          localTrack.close();
-        }
-        if (client) {
-          await client.leave();
-        }
-        updateStatus("Call ended");
-        showScreen("profile-view");
-      } catch (err) {
-        console.error("Leave error:", err);
-      }
-    }
-
-    function toggleMute() {
-      if (localTrack) {
-        isMuted = !isMuted;
-        localTrack.setMuted(isMuted);
-        muteBtn.textContent = isMuted ? "Unmute" : "Mute";
-        updateStatus(isMuted ? "Microphone muted" : "Microphone active");
-      }
-    }
-
-    async function startCall() {
-      const token = generateToken();
-      callTokenDisplay.textContent = token;
-      showScreen("caller-view");
-      const success = await joinChannel("voice-call-" + token);
-      if (!success) {
-        alert("Failed to start call. Check your mic permission.");
-        showScreen("profile-view");
-      }
-    }
-
-    async function joinExistingCall() {
-      const token = tokenInput.value.trim();
-      if (!/^\d{6}$/.test(token)) {
-        joinStatus.textContent = "Enter a valid 6-digit code";
-        return;
-      }
-      joinStatus.textContent = "Connecting...";
-      const success = await joinChannel("voice-call-" + token);
-      if (success) {
-        showScreen("caller-view");
-        callTokenDisplay.textContent = token;
-      } else {
-        joinStatus.textContent = "Failed to join. Invalid code or mic permission.";
-      }
-    }
-
-    startCallBtn.addEventListener("click", startCall);
-    showJoinBtn.addEventListener("click", () => showScreen("join-view"));
-    joinBtn.addEventListener("click", joinExistingCall);
-    endCallBtn.addEventListener("click", leaveChannel);
-    muteBtn.addEventListener("click", toggleMute);
-
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has("token")) {
-      tokenInput.value = urlParams.get("token");
-      showScreen("join-view");
-    }
-  </script>
+        // Agora setup
+        const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+        let localTracks = [];
+        
+        document.getElementById('call-btn').addEventListener('click', async () => {
+            try {
+                await client.join(
+                    "974f4c7b124940a1a6ee5e526175118d",
+                    "main_room",
+                    token,
+                    Date.now() % 100000
+                );
+                
+                localTracks = await AgoraRTC.createMicrophoneAndCameraTracks();
+                document.getElementById("local-video").appendChild(localTracks[1].getPlayer());
+                await client.publish(localTracks);
+                
+                client.on("user-published", async (user, mediaType) => {
+                    await client.subscribe(user, mediaType);
+                    if (mediaType === "video") {
+                        document.getElementById("remote-video").appendChild(user.videoTrack.getPlayer());
+                    }
+                    if (mediaType === "audio") {
+                        user.audioTrack.play();
+                    }
+                });
+                
+                document.getElementById('call-btn').textContent = "Connected!";
+            } catch (e) {
+                alert("Error: " + e.message);
+            }
+        });
+    </script>
 </body>
 </html>
