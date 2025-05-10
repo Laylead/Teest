@@ -1,63 +1,139 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Your Video Call</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Laylead Video Call</title>
     <script src="https://cdn.agora.io/sdk/release/AgoraRTC_N-4.19.0.js"></script>
     <style>
-        body { font-family: Arial; margin: 0; padding: 20px; background: #f5f5f5; }
-        #videos { display: flex; flex-wrap: wrap; gap: 10px; }
-        #local-video { width: 240px; height: 180px; background: #ddd; border-radius: 8px; }
-        #remote-video { width: 640px; height: 480px; background: #eee; border-radius: 8px; }
-        button { padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        :root {
+            --primary: #974f4c; /* Matching your App ID colors */
+            --secondary: #e52617;
+        }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f8f9fa;
+        }
+        #container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        #remote-video {
+            flex-grow: 1;
+            background: #000;
+            position: relative;
+        }
+        #local-video {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 120px;
+            height: 160px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        #controls {
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            background: white;
+        }
+        button {
+            padding: 12px 24px;
+            border-radius: 50px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        #join-btn {
+            background: var(--primary);
+            color: white;
+        }
+        #leave-btn {
+            background: var(--secondary);
+            color: white;
+            display: none;
+        }
     </style>
 </head>
 <body>
-    <div id="videos">
+    <div id="container">
         <div id="remote-video"></div>
-        <div id="local-video"></div>
+        <video id="local-video" muted autoplay playsinline></video>
+        <div id="controls">
+            <button id="join-btn">Join Call</button>
+            <button id="leave-btn">End Call</button>
+        </div>
     </div>
-    <button id="join-btn">Join Call</button>
 
     <script>
-        // YOUR Agora configuration
+        // YOUR AGORA SETUP
         const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-        const params = new URLSearchParams(window.location.search);
+        let localTracks = [];
+        let remoteUsers = {};
         
-        // Auto-join when page loads with token
-        if (params.get('token')) {
+        // AUTO-JOIN WHEN TOKEN EXISTS
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('token')) {
             document.getElementById('join-btn').click();
         }
-
+        
+        // JOIN HANDLER
         document.getElementById('join-btn').addEventListener('click', async () => {
             try {
-                // Join with YOUR App ID
+                const token = urlParams.get('token');
+                const uid = urlParams.get('uid') || null;
+                
+                // JOIN WITH YOUR APP ID
                 await client.join(
-                    "974f4c7b124940a1a6ee5e526175118d",  // Your App ID
-                    "main_room",  // Your channel name
-                    params.get('token'),
-                    params.get('uid') || null
+                    "974f4c7b124940a1a6ee5e526175118d", // YOUR APP ID
+                    "main_room", // YOUR CHANNEL NAME
+                    token,
+                    uid
                 );
                 
-                // Publish local stream
-                const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
-                document.getElementById("local-video").appendChild(videoTrack.getPlayer());
-                await client.publish([audioTrack, videoTrack]);
+                // PUBLISH LOCAL TRACKS
+                localTracks = await AgoraRTC.createMicrophoneAndCameraTracks();
+                document.getElementById("local-video").srcObject = new MediaStream([localTracks[1].getMediaStreamTrack()]);
+                await client.publish(localTracks);
                 
-                // Subscribe to remote users
+                // SUBSCRIBE TO REMOTE USERS
                 client.on("user-published", async (user, mediaType) => {
                     await client.subscribe(user, mediaType);
                     if (mediaType === "video") {
-                        document.getElementById("remote-video").appendChild(user.videoTrack.getPlayer());
+                        const player = document.createElement("div");
+                        player.style.width = "100%";
+                        player.style.height = "100%";
+                        document.getElementById("remote-video").appendChild(player);
+                        user.videoTrack.play(player);
                     }
                     if (mediaType === "audio") {
                         user.audioTrack.play();
                     }
                 });
                 
-                document.getElementById('join-btn').textContent = "Connected!";
-            } catch (e) {
-                alert("Error: " + e.message);
+                // UPDATE UI
+                document.getElementById('join-btn').style.display = "none";
+                document.getElementById('leave-btn').style.display = "block";
+                
+            } catch (error) {
+                alert(`Error: ${error.message}`);
             }
+        });
+        
+        // LEAVE HANDLER
+        document.getElementById('leave-btn').addEventListener('click', async () => {
+            for (const track of localTracks) {
+                track.stop();
+                track.close();
+            }
+            await client.leave();
+            window.location.reload();
         });
     </script>
 </body>
