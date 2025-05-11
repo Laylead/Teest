@@ -4,35 +4,97 @@
   <title>Voice Call</title>
   <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.19.0.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; }
-    #status { margin: 10px 0; font-weight: bold; color: #333; }
-    #timer { font-family: monospace; font-size: 18px; }
-    button { padding: 10px 20px; font-size: 16px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer; }
-    .container { text-align: center; margin-top: 50px; }
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 20px;
+      text-align: center;
+    }
+    #status {
+      margin: 20px 0;
+      font-weight: bold;
+      color: #333;
+      min-height: 24px;
+    }
+    #timer {
+      font-family: monospace;
+      font-size: 24px;
+      margin: 20px 0;
+      color: #4285f4;
+    }
+    #leaveBtn {
+      padding: 12px 24px;
+      font-size: 16px;
+      background: #ea4335;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    #leaveBtn:hover {
+      background: #d33426;
+    }
+    .container {
+      background: #f9f9f9;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .role-badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.8em;
+      margin-left: 10px;
+    }
+    .user-badge {
+      background: #4285f4;
+      color: white;
+    }
+    .admin-badge {
+      background: #34a853;
+      color: white;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h2>Voice Call</h2>
-    <div id="status">Initializing...</div>
-    <div>Call Duration: <span id="timer">00:00</span></div>
+    <h2>Voice Call <span id="roleBadge" class="role-badge"></span></h2>
+    <div id="status">Initializing call...</div>
+    <div id="timer">00:00</div>
     <button id="leaveBtn">End Call</button>
   </div>
 
   <script>
-    // Configuration - these should come from your backend
-    const appId = "974f4c7b124940a1a6ee5e526175118d"; // Replace with your Agora App ID
+    // Agora configuration
+    const AGORA_APP_ID = "974f4c7b124940a1a6ee5e526175118d";
     
     // Get URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const channelName = urlParams.get("channel");
     const role = urlParams.get("role");
-    const uid = role === "user" ? 1 : 2; // Simple UID assignment
+    
+    // Validate parameters
+    if (!channelName || !role || (role !== "user" && role !== "admin")) {
+      document.getElementById("status").textContent = "Invalid call parameters";
+      document.getElementById("leaveBtn").style.display = "none";
+      throw new Error("Invalid call parameters");
+    }
+    
+    // Set UID based on role
+    const uid = role === "user" ? 1 : 2;
     
     // DOM elements
     const statusEl = document.getElementById("status");
     const timerEl = document.getElementById("timer");
     const leaveBtn = document.getElementById("leaveBtn");
+    const roleBadge = document.getElementById("roleBadge");
+    
+    // Set role badge
+    roleBadge.textContent = role;
+    roleBadge.classList.add(role === "user" ? "user-badge" : "admin-badge");
     
     // Variables
     let client;
@@ -40,17 +102,14 @@
     let timerInterval;
     let seconds = 0;
     let remoteUser = null;
-
-    // Initialize Agora client
-    client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-
+    
     // Format time as MM:SS
     function formatTime(seconds) {
       const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
       const secs = (seconds % 60).toString().padStart(2, '0');
       return `${mins}:${secs}`;
     }
-
+    
     // Start call timer
     function startTimer() {
       timerInterval = setInterval(() => {
@@ -58,14 +117,17 @@
         timerEl.textContent = formatTime(seconds);
       }, 1000);
     }
-
+    
+    // Initialize Agora client
+    client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+    
     // Join channel and set up audio
     async function joinChannel() {
       try {
         statusEl.textContent = "Joining channel...";
         
         // Join the channel
-        await client.join(appId, channelName, null, uid);
+        await client.join(AGORA_APP_ID, channelName, null, uid);
         
         if (role === "user") {
           // Create and publish local audio track
@@ -75,7 +137,7 @@
         } else {
           statusEl.textContent = "Waiting for user...";
         }
-
+        
         // Set up event listeners
         client.on("user-published", handleUserPublished);
         client.on("user-unpublished", handleUserUnpublished);
@@ -87,7 +149,7 @@
         leaveChannel();
       }
     }
-
+    
     // Handle when a remote user publishes
     async function handleUserPublished(user, mediaType) {
       if (mediaType !== "audio") return;
@@ -107,7 +169,7 @@
         console.error("Subscribe failed:", error);
       }
     }
-
+    
     // Handle when a remote user unpublishes
     function handleUserUnpublished(user) {
       if (user.uid === remoteUser?.uid) {
@@ -115,7 +177,7 @@
         clearInterval(timerInterval);
       }
     }
-
+    
     // Handle when a remote user leaves
     function handleUserLeft(user) {
       if (user.uid === remoteUser?.uid) {
@@ -124,7 +186,7 @@
         setTimeout(leaveChannel, 3000);
       }
     }
-
+    
     // Leave the channel and clean up
     async function leaveChannel() {
       try {
@@ -155,19 +217,13 @@
         console.error("Leave channel failed:", error);
       }
     }
-
+    
     // Event listeners
     leaveBtn.addEventListener("click", leaveChannel);
     
     // Start the call when page loads
-    window.addEventListener("load", () => {
-      if (!channelName || !role) {
-        statusEl.textContent = "Invalid call parameters";
-        return;
-      }
-      joinChannel();
-    });
-
+    window.addEventListener("load", joinChannel);
+    
     // Handle page visibility changes
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) {
