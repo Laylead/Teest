@@ -1,235 +1,81 @@
+<!-- call.html -->
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Voice Call</title>
-  <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.19.0.js"></script>
+  <title>Call</title>
+  <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 500px;
-      margin: 0 auto;
-      padding: 20px;
-      text-align: center;
-    }
-    #status {
-      margin: 20px 0;
-      font-weight: bold;
-      color: #333;
-      min-height: 24px;
-    }
-    #timer {
-      font-family: monospace;
-      font-size: 24px;
-      margin: 20px 0;
-      color: #4285f4;
-    }
-    #leaveBtn {
-      padding: 12px 24px;
-      font-size: 16px;
-      background: #ea4335;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.3s;
-    }
-    #leaveBtn:hover {
-      background: #d33426;
-    }
-    .container {
-      background: #f9f9f9;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-    .role-badge {
-      display: inline-block;
-      padding: 3px 8px;
-      border-radius: 4px;
-      font-size: 0.8em;
-      margin-left: 10px;
-    }
-    .user-badge {
-      background: #4285f4;
-      color: white;
-    }
-    .admin-badge {
-      background: #34a853;
-      color: white;
-    }
+    body { font-family: sans-serif; padding: 20px; }
+    #status { margin-bottom: 10px; font-weight: bold; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>Voice Call <span id="roleBadge" class="role-badge"></span></h2>
-    <div id="status">Initializing call...</div>
-    <div id="timer">00:00</div>
-    <button id="leaveBtn">End Call</button>
-  </div>
+  <h2>Voice Call</h2>
+  <p id="status">Initializing...</p>
+  <p>Call Duration: <span id="timer">00:00</span></p>
+  <button onclick="leave()">Leave Call</button>
 
   <script>
-    // Agora configuration
-    const AGORA_APP_ID = "974f4c7b124940a1a6ee5e526175118d";
-    
-    // Get URL parameters
+    const appId = "974f4c7b124940a1a6ee5e526175118d";
     const urlParams = new URLSearchParams(window.location.search);
-    const channelName = urlParams.get("channel");
+    const channel = urlParams.get("channel");
     const role = urlParams.get("role");
-    
-    // Validate parameters
-    if (!channelName || !role || (role !== "user" && role !== "admin")) {
-      document.getElementById("status").textContent = "Invalid call parameters";
-      document.getElementById("leaveBtn").style.display = "none";
-      throw new Error("Invalid call parameters");
-    }
-    
-    // Set UID based on role
     const uid = role === "user" ? 1 : 2;
-    
-    // DOM elements
+    let localTrack, timerInterval, seconds = 0;
+
+    const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
     const statusEl = document.getElementById("status");
     const timerEl = document.getElementById("timer");
-    const leaveBtn = document.getElementById("leaveBtn");
-    const roleBadge = document.getElementById("roleBadge");
-    
-    // Set role badge
-    roleBadge.textContent = role;
-    roleBadge.classList.add(role === "user" ? "user-badge" : "admin-badge");
-    
-    // Variables
-    let client;
-    let localAudioTrack;
-    let timerInterval;
-    let seconds = 0;
-    let remoteUser = null;
-    
-    // Format time as MM:SS
-    function formatTime(seconds) {
-      const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
-      const secs = (seconds % 60).toString().padStart(2, '0');
-      return `${mins}:${secs}`;
+
+    function formatTime(s) {
+      const min = String(Math.floor(s / 60)).padStart(2, '0');
+      const sec = String(s % 60).padStart(2, '0');
+      return `${min}:${sec}`;
     }
-    
-    // Start call timer
+
     function startTimer() {
       timerInterval = setInterval(() => {
         seconds++;
         timerEl.textContent = formatTime(seconds);
       }, 1000);
     }
-    
-    // Initialize Agora client
-    client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-    
-    // Join channel and set up audio
-    async function joinChannel() {
-      try {
-        statusEl.textContent = "Joining channel...";
-        
-        // Join the channel
-        await client.join(AGORA_APP_ID, channelName, null, uid);
-        
-        if (role === "user") {
-          // Create and publish local audio track
-          localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-          await client.publish([localAudioTrack]);
-          statusEl.textContent = "Waiting for admin to join...";
-        } else {
-          statusEl.textContent = "Waiting for user...";
-        }
-        
-        // Set up event listeners
-        client.on("user-published", handleUserPublished);
-        client.on("user-unpublished", handleUserUnpublished);
-        client.on("user-left", handleUserLeft);
-        
-      } catch (error) {
-        console.error("Join channel failed:", error);
-        statusEl.textContent = "Error joining channel";
-        leaveChannel();
+
+    async function start() {
+      statusEl.textContent = "Joining call...";
+      await client.join(appId, channel, null, uid);
+
+      if (role === "user") {
+        localTrack = await AgoraRTC.createMicrophoneAudioTrack();
+        await client.publish([localTrack]);
+        statusEl.textContent = "Waiting for admin to join...";
+      } else {
+        statusEl.textContent = "Waiting for user audio...";
       }
-    }
-    
-    // Handle when a remote user publishes
-    async function handleUserPublished(user, mediaType) {
-      if (mediaType !== "audio") return;
-      
-      try {
-        // Subscribe to the remote user
+
+      client.on("user-published", async (user, mediaType) => {
         await client.subscribe(user, mediaType);
-        
-        // Play the remote audio track
-        user.audioTrack.play();
-        
-        remoteUser = user;
-        statusEl.textContent = "Call connected";
-        startTimer();
-        
-      } catch (error) {
-        console.error("Subscribe failed:", error);
-      }
-    }
-    
-    // Handle when a remote user unpublishes
-    function handleUserUnpublished(user) {
-      if (user.uid === remoteUser?.uid) {
-        statusEl.textContent = "Other user disconnected";
-        clearInterval(timerInterval);
-      }
-    }
-    
-    // Handle when a remote user leaves
-    function handleUserLeft(user) {
-      if (user.uid === remoteUser?.uid) {
-        statusEl.textContent = "Call ended by other user";
-        clearInterval(timerInterval);
-        setTimeout(leaveChannel, 3000);
-      }
-    }
-    
-    // Leave the channel and clean up
-    async function leaveChannel() {
-      try {
-        clearInterval(timerInterval);
-        
-        if (localAudioTrack) {
-          localAudioTrack.close();
-          localAudioTrack = null;
+        if (mediaType === "audio") {
+          user.audioTrack.play();
+          statusEl.textContent = "Call connected";
+          startTimer();
         }
-        
-        if (client) {
-          await client.leave();
-        }
-        
-        statusEl.textContent = "Call ended";
-        leaveBtn.disabled = true;
-        
-        // Close the window after a delay
-        setTimeout(() => {
-          if (!window.opener) {
-            window.location.href = role === "user" ? "user.html" : "admin.html";
-          } else {
-            window.close();
-          }
-        }, 2000);
-        
-      } catch (error) {
-        console.error("Leave channel failed:", error);
-      }
+      });
+
+      client.on("user-unpublished", () => {
+        statusEl.textContent = "User left the call";
+        clearInterval(timerInterval);
+      });
     }
-    
-    // Event listeners
-    leaveBtn.addEventListener("click", leaveChannel);
-    
-    // Start the call when page loads
-    window.addEventListener("load", joinChannel);
-    
-    // Handle page visibility changes
-    document.addEventListener("visibilitychange", () => {
-      if (document.hidden) {
-        statusEl.textContent = "Call is running in background...";
-      }
-    });
+
+    async function leave() {
+      if (localTrack) localTrack.close();
+      await client.leave();
+      clearInterval(timerInterval);
+      statusEl.textContent = "Call ended";
+      window.close();
+    }
+
+    start();
   </script>
 </body>
 </html>
