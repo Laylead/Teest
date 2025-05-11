@@ -11,8 +11,17 @@
 
   <script>
     const botToken = "8145304491:AAHz-cm62Ks0q-ask2_X1-G3oJOoL5EwK50";
-    let lastUpdateId = 0;
     const ringtone = document.getElementById("ringtone");
+    let lastUpdateId = 0;
+
+    async function getInitialOffset() {
+      // Get latest messages to initialize lastUpdateId
+      const res = await fetch(`https://api.telegram.org/bot${botToken}/getUpdates`);
+      const data = await res.json();
+      if (data.ok && data.result.length > 0) {
+        lastUpdateId = data.result[data.result.length - 1].update_id;
+      }
+    }
 
     async function pollBot() {
       try {
@@ -22,6 +31,7 @@
         if (data.ok && data.result.length > 0) {
           data.result.forEach(update => {
             lastUpdateId = update.update_id;
+
             const text = update.message?.text || "";
             const match = text.match(/Channel: (\w+)/);
             if (match) {
@@ -34,7 +44,7 @@
         console.error("Polling error:", err);
       }
 
-      setTimeout(pollBot, 3000); // poll every 3 seconds
+      setTimeout(pollBot, 3000); // Keep polling
     }
 
     function notifyCall(channelName) {
@@ -57,7 +67,7 @@
     }
 
     Notification.requestPermission();
-    pollBot();
+    getInitialOffset().then(pollBot);
   </script>
 </body>
 </html>
