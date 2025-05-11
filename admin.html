@@ -1,4 +1,3 @@
-<!-- admin.html -->
 <!DOCTYPE html>
 <html>
 <head>
@@ -6,32 +5,33 @@
 </head>
 <body>
   <h2>Admin Dashboard</h2>
-  <p id="log">Waiting for calls...</p>
-  <audio id="ringtone" src="https://actions.google.com/sounds/v1/alarms/phone_alerts_and_rings.ogg" preload="auto"></audio>
+  <p>Paste call code or wait for Telegram auto-fill</p>
+
+  <input type="text" id="codeInput" placeholder="Enter 6-digit code" maxlength="6">
+  <button id="joinBtn" onclick="joinCall()" disabled>Join Call</button>
+  <p id="status">Waiting for call...</p>
 
   <script>
-    const botToken = "8145304491:AAHz-cm62Ks0q-ask2_X1-G3oJOoL5EwK50";
+    const BOT_TOKEN = "8145304491:AAHz-cm62Ks0q-ask2_X1-G3oJOoL5EwK50";
     let lastUpdateId = 0;
-    const log = document.getElementById("log");
-    const ringtone = document.getElementById("ringtone");
+    const input = document.getElementById("codeInput");
+    const button = document.getElementById("joinBtn");
+    const status = document.getElementById("status");
 
-    function logMessage(msg) {
-      console.log(msg);
-      log.textContent = msg;
-    }
-
-    async function getInitialOffset() {
-      const res = await fetch(`https://api.telegram.org/bot${botToken}/getUpdates`);
-      const data = await res.json();
-      if (data.ok && data.result.length > 0) {
-        lastUpdateId = data.result[data.result.length - 1].update_id;
-        logMessage("Initialized. Waiting for new messages...");
+    function joinCall() {
+      const code = input.value.trim();
+      if (code.length === 6) {
+        window.open(`call.html?channel=${code}&role=admin`, "_blank");
       }
     }
 
-    async function pollBot() {
+    input.addEventListener("input", () => {
+      button.disabled = input.value.length !== 6;
+    });
+
+    async function pollTelegram() {
       try {
-        const res = await fetch(`https://api.telegram.org/bot${botToken}/getUpdates?offset=${lastUpdateId + 1}`);
+        const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?offset=${lastUpdateId + 1}`);
         const data = await res.json();
 
         if (data.ok && data.result.length > 0) {
@@ -39,49 +39,22 @@
             lastUpdateId = update.update_id;
 
             const text = update.message?.text || "";
-            logMessage("Message received: " + text);
-
-            const match = text.match(/Channel: (\w+)/);
+            const match = text.match(/Code: (\d{6})/);
             if (match) {
-              const channelName = match[1];
-              notifyCall(channelName);
+              const code = match[1];
+              input.value = code;
+              button.disabled = false;
+              status.textContent = `Received code: ${code}`;
             }
           });
         }
-      } catch (err) {
-        console.error("Polling error:", err);
-        logMessage("Polling error");
+      } catch (e) {
+        console.error("Polling failed", e);
       }
-
-      setTimeout(pollBot, 3000);
+      setTimeout(pollTelegram, 3000);
     }
 
-    function notifyCall(channelName) {
-      logMessage("Incoming call for channel: " + channelName);
-      ringtone.loop = true;
-      ringtone.play();
-
-      if (Notification.permission === "granted") {
-        const notification = new Notification("Incoming Call", {
-          body: "Click to join the call",
-        });
-
-        notification.onclick = () => {
-          ringtone.pause();
-          ringtone.currentTime = 0;
-          window.open(`call.html?channel=${channelName}&role=admin`, "_blank");
-        };
-      } else {
-        Notification.requestPermission().then(permission => {
-          if (permission === "granted") {
-            notifyCall(channelName); // retry
-          }
-        });
-      }
-    }
-
-    Notification.requestPermission();
-    getInitialOffset().then(pollBot);
+    pollTelegram();
   </script>
 </body>
 </html>
