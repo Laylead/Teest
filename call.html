@@ -40,8 +40,7 @@
     client.on("user-published", async (user, mediaType) => {
       await client.subscribe(user, mediaType);
       if (mediaType === "audio") {
-        const remoteAudioTrack = user.audioTrack;
-        remoteAudioTrack.play();
+        user.audioTrack.play();
       }
     });
 
