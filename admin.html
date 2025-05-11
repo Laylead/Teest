@@ -5,18 +5,14 @@
 </head>
 <body>
   <h2>Admin Dashboard</h2>
-  <p>Paste call code or wait for Telegram auto-fill</p>
+  <p>Paste call code or open from Telegram link</p>
 
   <input type="text" id="codeInput" placeholder="Enter 6-digit code" maxlength="6">
   <button id="joinBtn" onclick="joinCall()" disabled>Join Call</button>
-  <p id="status">Waiting for call...</p>
 
   <script>
-    const BOT_TOKEN = "8145304491:AAHz-cm62Ks0q-ask2_X1-G3oJOoL5EwK50";
-    let lastUpdateId = 0;
     const input = document.getElementById("codeInput");
     const button = document.getElementById("joinBtn");
-    const status = document.getElementById("status");
 
     function joinCall() {
       const code = input.value.trim();
@@ -29,32 +25,13 @@
       button.disabled = input.value.length !== 6;
     });
 
-    async function pollTelegram() {
-      try {
-        const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?offset=${lastUpdateId + 1}`);
-        const data = await res.json();
-
-        if (data.ok && data.result.length > 0) {
-          data.result.forEach(update => {
-            lastUpdateId = update.update_id;
-
-            const text = update.message?.text || "";
-            const match = text.match(/Code: (\d{6})/);
-            if (match) {
-              const code = match[1];
-              input.value = code;
-              button.disabled = false;
-              status.textContent = `Received code: ${code}`;
-            }
-          });
-        }
-      } catch (e) {
-        console.error("Polling failed", e);
-      }
-      setTimeout(pollTelegram, 3000);
+    // Auto-fill from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const codeFromURL = urlParams.get("code");
+    if (codeFromURL && codeFromURL.length === 6) {
+      input.value = codeFromURL;
+      button.disabled = false;
     }
-
-    pollTelegram();
   </script>
 </body>
 </html>
