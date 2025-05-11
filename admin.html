@@ -136,6 +136,7 @@
         });
         
         notification.onclick = () => {
+          ringtone.pause();
           window.open(`call.html?channel=${channelName}&role=admin`, "_blank");
         };
       } else if (Notification.permission !== "denied") {
