@@ -6,13 +6,28 @@
 </head>
 <body>
   <h2>Admin Dashboard</h2>
-  <p>Waiting for calls...</p>
+  <p id="log">Waiting for calls...</p>
   <audio id="ringtone" src="https://actions.google.com/sounds/v1/alarms/phone_alerts_and_rings.ogg" preload="auto"></audio>
 
   <script>
     const botToken = "8145304491:AAHz-cm62Ks0q-ask2_X1-G3oJOoL5EwK50";
     let lastUpdateId = 0;
+    const log = document.getElementById("log");
     const ringtone = document.getElementById("ringtone");
+
+    function logMessage(msg) {
+      console.log(msg);
+      log.textContent = msg;
+    }
+
+    async function getInitialOffset() {
+      const res = await fetch(`https://api.telegram.org/bot${botToken}/getUpdates`);
+      const data = await res.json();
+      if (data.ok && data.result.length > 0) {
+        lastUpdateId = data.result[data.result.length - 1].update_id;
+        logMessage("Initialized. Waiting for new messages...");
+      }
+    }
 
     async function pollBot() {
       try {
@@ -22,7 +37,10 @@
         if (data.ok && data.result.length > 0) {
           data.result.forEach(update => {
             lastUpdateId = update.update_id;
+
             const text = update.message?.text || "";
+            logMessage("Message received: " + text);
+
             const match = text.match(/Channel: (\w+)/);
             if (match) {
               const channelName = match[1];
@@ -32,18 +50,20 @@
         }
       } catch (err) {
         console.error("Polling error:", err);
+        logMessage("Polling error");
       }
 
-      setTimeout(pollBot, 3000); // poll every 3 seconds
+      setTimeout(pollBot, 3000);
     }
 
     function notifyCall(channelName) {
-      if (Notification.permission === "granted") {
-        ringtone.loop = true;
-        ringtone.play();
+      logMessage("Incoming call for channel: " + channelName);
+      ringtone.loop = true;
+      ringtone.play();
 
+      if (Notification.permission === "granted") {
         const notification = new Notification("Incoming Call", {
-          body: "Click to join",
+          body: "Click to join the call",
         });
 
         notification.onclick = () => {
@@ -52,12 +72,16 @@
           window.open(`call.html?channel=${channelName}&role=admin`, "_blank");
         };
       } else {
-        Notification.requestPermission();
+        Notification.requestPermission().then(permission => {
+          if (permission === "granted") {
+            notifyCall(channelName); // retry
+          }
+        });
       }
     }
 
     Notification.requestPermission();
-    pollBot();
+    getInitialOffset().then(pollBot);
   </script>
 </body>
 </html>
