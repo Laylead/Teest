@@ -1,31 +1,36 @@
-<!-- user.html -->
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Call Admin</title>
+  <title>Start Call</title>
 </head>
 <body>
-  <h2>Call an Admin</h2>
-  <button id="callBtn">Call Now</button>
+  <h2>Start a Call</h2>
+  <button onclick="startCall()">Call Admin</button>
 
   <script>
-    const botToken = "8145304491:AAHz-cm62Ks0q-ask2_X1-G3oJOoL5EwK50";
-    const chatId = "7765024432";
+    const TELEGRAM_BOT_TOKEN = "8145304491:AAHz-cm62Ks0q-ask2_X1-G3oJOoL5EwK50";
+    const CHAT_ID = "7765024432";
 
-    document.getElementById("callBtn").addEventListener("click", () => {
-      const channelName = "call_" + Math.floor(Math.random() * 100000);
+    function generateCode() {
+      return Math.floor(100000 + Math.random() * 900000).toString();
+    }
 
-      // Send call request via Telegram bot
-      const msg = `New call request.\nChannel: ${channelName}`;
-      fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+    async function startCall() {
+      const code = generateCode();
+      const message = `Incoming voice call.\nCode: ${code}`;
+
+      await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_id: chatId, text: msg })
+        body: JSON.stringify({
+          chat_id: CHAT_ID,
+          text: message
+        })
       });
 
-      // Redirect user to call.html
-      window.location.href = `call.html?channel=${channelName}&role=user`;
-    });
+      alert(`Your call code is: ${code}`);
+      window.open(`call.html?channel=${code}&role=user`, "_blank");
+    }
   </script>
 </body>
 </html>
