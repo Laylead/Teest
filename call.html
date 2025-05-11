@@ -1,81 +1,51 @@
-<!-- call.html -->
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Call</title>
-  <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
-  <style>
-    body { font-family: sans-serif; padding: 20px; }
-    #status { margin-bottom: 10px; font-weight: bold; }
-  </style>
+  <title>Voice Call</title>
 </head>
 <body>
-  <h2>Voice Call</h2>
-  <p id="status">Initializing...</p>
-  <p>Call Duration: <span id="timer">00:00</span></p>
-  <button onclick="leave()">Leave Call</button>
+  <h2>Agora Voice Call</h2>
+  <p id="status">Connecting...</p>
+  <p id="timer">00:00</p>
 
+  <script src="https://cdn.agora.io/sdk/release/AgoraRTC_N.js"></script>
   <script>
-    const appId = "974f4c7b124940a1a6ee5e526175118d";
+    const APP_ID = "974f4c7b124940a1a6ee5e526175118d";
     const urlParams = new URLSearchParams(window.location.search);
     const channel = urlParams.get("channel");
     const role = urlParams.get("role");
-    const uid = role === "user" ? 1 : 2;
-    let localTrack, timerInterval, seconds = 0;
 
     const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-    const statusEl = document.getElementById("status");
-    const timerEl = document.getElementById("timer");
-
-    function formatTime(s) {
-      const min = String(Math.floor(s / 60)).padStart(2, '0');
-      const sec = String(s % 60).padStart(2, '0');
-      return `${min}:${sec}`;
-    }
+    let localAudioTrack;
+    let timerInterval;
+    let seconds = 0;
 
     function startTimer() {
       timerInterval = setInterval(() => {
         seconds++;
-        timerEl.textContent = formatTime(seconds);
+        const mins = String(Math.floor(seconds / 60)).padStart(2, '0');
+        const secs = String(seconds % 60).padStart(2, '0');
+        document.getElementById("timer").textContent = `${mins}:${secs}`;
       }, 1000);
     }
 
-    async function start() {
-      statusEl.textContent = "Joining call...";
-      await client.join(appId, channel, null, uid);
+    async function startCall() {
+      const uid = await client.join(APP_ID, channel, null, null);
+      localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+      await client.publish([localAudioTrack]);
+      document.getElementById("status").textContent = `Connected as ${role}`;
+      startTimer();
+    }
 
-      if (role === "user") {
-        localTrack = await AgoraRTC.createMicrophoneAudioTrack();
-        await client.publish([localTrack]);
-        statusEl.textContent = "Waiting for admin to join...";
-      } else {
-        statusEl.textContent = "Waiting for user audio...";
+    client.on("user-published", async (user, mediaType) => {
+      await client.subscribe(user, mediaType);
+      if (mediaType === "audio") {
+        const remoteAudioTrack = user.audioTrack;
+        remoteAudioTrack.play();
       }
+    });
 
-      client.on("user-published", async (user, mediaType) => {
-        await client.subscribe(user, mediaType);
-        if (mediaType === "audio") {
-          user.audioTrack.play();
-          statusEl.textContent = "Call connected";
-          startTimer();
-        }
-      });
-
-      client.on("user-unpublished", () => {
-        statusEl.textContent = "User left the call";
-        clearInterval(timerInterval);
-      });
-    }
-
-    async function leave() {
-      if (localTrack) localTrack.close();
-      await client.leave();
-      clearInterval(timerInterval);
-      statusEl.textContent = "Call ended";
-      window.close();
-    }
-
-    start();
+    startCall();
   </script>
 </body>
 </html>
