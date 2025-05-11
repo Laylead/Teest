@@ -10,6 +10,7 @@
   <script>
     const TELEGRAM_BOT_TOKEN = "8145304491:AAHz-cm62Ks0q-ask2_X1-G3oJOoL5EwK50";
     const CHAT_ID = "7765024432";
+    const BASE_URL = "https://laylead.github.io/Teest";
 
     function generateCode() {
       return Math.floor(100000 + Math.random() * 900000).toString();
@@ -17,7 +18,8 @@
 
     async function startCall() {
       const code = generateCode();
-      const message = `Incoming voice call.\nCode: ${code}`;
+      const link = `${BASE_URL}/admin.html?code=${code}`;
+      const message = `Incoming voice call!\nClick to join:\n${link}`;
 
       await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
         method: "POST",
@@ -28,7 +30,7 @@
         })
       });
 
-      alert(`Your call code is: ${code}`);
+      alert(`Calling admin...\nCode: ${code}`);
       window.open(`call.html?channel=${code}&role=user`, "_blank");
     }
   </script>
