@@ -1,73 +1,68 @@
-<!-- admin.html -->
 <!DOCTYPE html>
 <html>
 <head>
   <title>Admin Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+    #callLog { margin-top: 20px; border: 1px solid #ddd; padding: 10px; max-height: 300px; overflow-y: auto; }
+  </style>
 </head>
 <body>
   <h2>Admin Dashboard</h2>
   <p>Waiting for calls...</p>
-  <audio id="ringtone" src="https://actions.google.com/sounds/v1/alarms/phone_alerts_and_rings.ogg" preload="auto"></audio>
+  <div id="callLog"></div>
+  <audio id="ringtone" loop src="/ringtone.mp3" preload="auto"></audio>
 
   <script>
-    const botToken = "8145304491:AAHz-cm62Ks0q-ask2_X1-G3oJOoL5EwK50";
     const ringtone = document.getElementById("ringtone");
-    let lastUpdateId = 0;
-
-    async function getInitialOffset() {
-      // Get latest messages to initialize lastUpdateId
-      const res = await fetch(`https://api.telegram.org/bot${botToken}/getUpdates`);
-      const data = await res.json();
-      if (data.ok && data.result.length > 0) {
-        lastUpdateId = data.result[data.result.length - 1].update_id;
+    const callLog = document.getElementById("callLog");
+    
+    // Use WebSocket or Server-Sent Events for real-time updates
+    const eventSource = new EventSource('/api/call-events');
+    
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === 'new_call') {
+        handleNewCall(data.channel);
       }
-    }
+    };
 
-    async function pollBot() {
-      try {
-        const res = await fetch(`https://api.telegram.org/bot${botToken}/getUpdates?offset=${lastUpdateId + 1}`);
-        const data = await res.json();
+    eventSource.onerror = () => {
+      console.error("EventSource failed");
+      // Implement reconnection logic here
+    };
 
-        if (data.ok && data.result.length > 0) {
-          data.result.forEach(update => {
-            lastUpdateId = update.update_id;
-
-            const text = update.message?.text || "";
-            const match = text.match(/Channel: (\w+)/);
-            if (match) {
-              const channelName = match[1];
-              notifyCall(channelName);
-            }
-          });
-        }
-      } catch (err) {
-        console.error("Polling error:", err);
-      }
-
-      setTimeout(pollBot, 3000); // Keep polling
-    }
-
-    function notifyCall(channelName) {
+    function handleNewCall(channelName) {
+      // Log the call
+      const logEntry = document.createElement('div');
+      logEntry.textContent = `New call received: ${channelName} - ${new Date().toLocaleTimeString()}`;
+      callLog.prepend(logEntry);
+      
+      // Play ringtone
+      ringtone.play().catch(e => console.error("Audio play failed:", e));
+      
+      // Show notification
       if (Notification.permission === "granted") {
-        ringtone.loop = true;
-        ringtone.play();
-
         const notification = new Notification("Incoming Call", {
-          body: "Click to join",
+          body: `Channel: ${channelName}`,
+          icon: '/icon.png'
         });
-
+        
         notification.onclick = () => {
           ringtone.pause();
-          ringtone.currentTime = 0;
           window.open(`call.html?channel=${channelName}&role=admin`, "_blank");
         };
-      } else {
-        Notification.requestPermission();
+      } else if (Notification.permission !== "denied") {
+        Notification.requestPermission().then(permission => {
+          if (permission === "granted") handleNewCall(channelName);
+        });
       }
     }
 
-    Notification.requestPermission();
-    getInitialOffset().then(pollBot);
+    // Initial permission request
+    if (Notification.permission !== "granted") {
+      Notification.requestPermission();
+    }
   </script>
 </body>
 </html>
