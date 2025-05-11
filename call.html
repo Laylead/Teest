@@ -1,0 +1,81 @@
+<!-- call.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Call</title>
+  <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    #status { margin-bottom: 10px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h2>Voice Call</h2>
+  <p id="status">Initializing...</p>
+  <p>Call Duration: <span id="timer">00:00</span></p>
+  <button onclick="leave()">Leave Call</button>
+
+  <script>
+    const appId = "974f4c7b124940a1a6ee5e526175118d";
+    const urlParams = new URLSearchParams(window.location.search);
+    const channel = urlParams.get("channel");
+    const role = urlParams.get("role");
+    const uid = role === "user" ? 1 : 2;
+    let localTrack, timerInterval, seconds = 0;
+
+    const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+    const statusEl = document.getElementById("status");
+    const timerEl = document.getElementById("timer");
+
+    function formatTime(s) {
+      const min = String(Math.floor(s / 60)).padStart(2, '0');
+      const sec = String(s % 60).padStart(2, '0');
+      return `${min}:${sec}`;
+    }
+
+    function startTimer() {
+      timerInterval = setInterval(() => {
+        seconds++;
+        timerEl.textContent = formatTime(seconds);
+      }, 1000);
+    }
+
+    async function start() {
+      statusEl.textContent = "Joining call...";
+      await client.join(appId, channel, null, uid);
+
+      if (role === "user") {
+        localTrack = await AgoraRTC.createMicrophoneAudioTrack();
+        await client.publish([localTrack]);
+        statusEl.textContent = "Waiting for admin to join...";
+      } else {
+        statusEl.textContent = "Waiting for user audio...";
+      }
+
+      client.on("user-published", async (user, mediaType) => {
+        await client.subscribe(user, mediaType);
+        if (mediaType === "audio") {
+          user.audioTrack.play();
+          statusEl.textContent = "Call connected";
+          startTimer();
+        }
+      });
+
+      client.on("user-unpublished", () => {
+        statusEl.textContent = "User left the call";
+        clearInterval(timerInterval);
+      });
+    }
+
+    async function leave() {
+      if (localTrack) localTrack.close();
+      await client.leave();
+      clearInterval(timerInterval);
+      statusEl.textContent = "Call ended";
+      window.close();
+    }
+
+    start();
+  </script>
+</body>
+</html>

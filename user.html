@@ -1,0 +1,31 @@
+<!-- user.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Call Admin</title>
+</head>
+<body>
+  <h2>Call an Admin</h2>
+  <button id="callBtn">Call Now</button>
+
+  <script>
+    const botToken = "8145304491:AAHz-cm62Ks0q-ask2_X1-G3oJOoL5EwK50";
+    const chatId = "7765024432";
+
+    document.getElementById("callBtn").addEventListener("click", () => {
+      const channelName = "call_" + Math.floor(Math.random() * 100000);
+
+      // Send call request via Telegram bot
+      const msg = `New call request.\nChannel: ${channelName}`;
+      fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: chatId, text: msg })
+      });
+
+      // Redirect user to call.html
+      window.location.href = `call.html?channel=${channelName}&role=user`;
+    });
+  </script>
+</body>
+</html>
