@@ -2,35 +2,106 @@
 <html>
 <head>
   <title>Admin Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 20px;
+      text-align: center;
+      background: #f5f5f5;
+    }
+    .profile-pic {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      margin: 20px auto;
+      background: #e9ecef;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .profile-pic i {
+      font-size: 48px;
+      color: #495057;
+    }
+    input {
+      padding: 12px;
+      font-size: 16px;
+      width: 200px;
+      text-align: center;
+      letter-spacing: 3px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin: 10px;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 4px;
+      font-size: 16px;
+      margin: 10px;
+      cursor: pointer;
+    }
+    button:disabled {
+      background: #cccccc;
+      cursor: not-allowed;
+    }
+    .status {
+      margin: 20px 0;
+      color: #666;
+    }
+  </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
+  <div class="profile-pic">
+    <i class="fas fa-user-shield"></i>
+  </div>
   <h2>Admin Dashboard</h2>
-  <p>Paste call code or open from Telegram link</p>
-
-  <input type="text" id="codeInput" placeholder="Enter 6-digit code" maxlength="6">
-  <button id="joinBtn" onclick="joinCall()" disabled>Join Call</button>
+  <p class="status">Enter call code from notification</p>
+  
+  <input type="text" id="codeInput" placeholder="Enter 6-digit code" maxlength="6" pattern="\d{6}">
+  <button id="joinBtn" disabled>Join Call</button>
+  <p class="status" id="status"></p>
 
   <script>
     const input = document.getElementById("codeInput");
     const button = document.getElementById("joinBtn");
+    const statusEl = document.getElementById("status");
 
     function joinCall() {
       const code = input.value.trim();
-      if (code.length === 6) {
+      if (/^\d{6}$/.test(code)) {
+        statusEl.textContent = "Connecting...";
         window.open(`call.html?channel=${code}&role=admin`, "_blank");
+      } else {
+        statusEl.textContent = "Please enter a valid 6-digit code";
       }
     }
 
     input.addEventListener("input", () => {
-      button.disabled = input.value.length !== 6;
+      button.disabled = !/^\d{6}$/.test(input.value.trim());
     });
+
+    input.addEventListener("keypress", (e) => {
+      if (e.key === "Enter" && !button.disabled) {
+        joinCall();
+      }
+    });
+
+    button.addEventListener("click", joinCall);
 
     // Auto-fill from URL
     const urlParams = new URLSearchParams(window.location.search);
     const codeFromURL = urlParams.get("code");
-    if (codeFromURL && codeFromURL.length === 6) {
+    if (codeFromURL && /^\d{6}$/.test(codeFromURL)) {
       input.value = codeFromURL;
       button.disabled = false;
+      statusEl.textContent = "Code loaded from link!";
     }
   </script>
 </body>
