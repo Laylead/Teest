@@ -2,49 +2,180 @@
 <html>
 <head>
   <title>Voice Call</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 20px;
+      text-align: center;
+      background: #f5f5f5;
+    }
+    .profile-pic {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      margin: 20px auto;
+      background: #e9ecef;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .profile-pic i {
+      font-size: 48px;
+      color: #495057;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 4px;
+      font-size: 16px;
+      margin: 10px;
+      cursor: pointer;
+    }
+    #end-call {
+      background: #f44336;
+    }
+    #mute-btn {
+      background: #ff9800;
+    }
+    .status {
+      margin: 20px 0;
+      color: #666;
+    }
+    .timer {
+      font-size: 24px;
+      font-weight: bold;
+      color: #2196F3;
+      margin: 15px 0;
+    }
+    .role-badge {
+      padding: 5px 10px;
+      border-radius: 20px;
+      background: #4CAF50;
+      color: white;
+      font-size: 14px;
+      display: inline-block;
+      margin-bottom: 15px;
+    }
+  </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
-  <h2>Agora Voice Call</h2>
-  <p id="status">Connecting...</p>
-  <p id="timer">00:00</p>
+  <div class="profile-pic">
+    <i class="fas fa-phone-alt"></i>
+  </div>
+  <div class="role-badge" id="role-badge"></div>
+  <div class="timer" id="timer">00:00</div>
+  <div class="status" id="status">Connecting...</div>
+  
+  <button id="mute-btn">Mute</button>
+  <button id="end-call">End Call</button>
 
   <script src="https://cdn.agora.io/sdk/release/AgoraRTC_N.js"></script>
   <script>
     const APP_ID = "974f4c7b124940a1a6ee5e526175118d";
     const urlParams = new URLSearchParams(window.location.search);
     const channel = urlParams.get("channel");
-    const role = urlParams.get("role");
+    const role = urlParams.get("role") || "participant";
 
     const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
     let localAudioTrack;
+    let isMuted = false;
     let timerInterval;
     let seconds = 0;
 
+    // DOM Elements
+    const statusEl = document.getElementById("status");
+    const timerEl = document.getElementById("timer");
+    const roleBadge = document.getElementById("role-badge");
+    const muteBtn = document.getElementById("mute-btn");
+    const endCallBtn = document.getElementById("end-call");
+
+    // Set role badge
+    roleBadge.textContent = role === "admin" ? "ADMIN" : "USER";
+
     function startTimer() {
-      timerInterval = setInterval(() => {
-        seconds++;
-        const mins = String(Math.floor(seconds / 60)).padStart(2, '0');
-        const secs = String(seconds % 60).padStart(2, '0');
-        document.getElementById("timer").textContent = `${mins}:${secs}`;
-      }, 1000);
+      clearInterval(timerInterval);
+      seconds = 0;
+      timerInterval = setInterval(updateTimer, 1000);
+    }
+
+    function updateTimer() {
+      seconds++;
+      const mins = String(Math.floor(seconds / 60)).padStart(2, '0');
+      const secs = String(seconds % 60).padStart(2, '0');
+      timerEl.textContent = `${mins}:${secs}`;
+    }
+
+    function toggleMute() {
+      if (localAudioTrack) {
+        isMuted = !isMuted;
+        localAudioTrack.setMuted(isMuted);
+        muteBtn.textContent = isMuted ? "Unmute" : "Mute";
+        statusEl.textContent = isMuted ? "Microphone muted" : "Microphone active";
+      }
+    }
+
+    async function leaveChannel() {
+      clearInterval(timerInterval);
+      try {
+        if (localAudioTrack) {
+          localAudioTrack.close();
+        }
+        await client.leave();
+        statusEl.textContent = "Call ended";
+        setTimeout(() => window.close(), 2000);
+      } catch (err) {
+        console.error("Leave error:", err);
+      }
     }
 
     async function startCall() {
-      const uid = await client.join(APP_ID, channel, null, null);
-      localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-      await client.publish([localAudioTrack]);
-      document.getElementById("status").textContent = `Connected as ${role}`;
-      startTimer();
+      try {
+        statusEl.textContent = "Joining channel...";
+        const uid = await client.join(APP_ID, channel, null, null);
+        
+        statusEl.textContent = "Setting up microphone...";
+        localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+        await client.publish([localAudioTrack]);
+        
+        statusEl.textContent = `Connected as ${role}`;
+        startTimer();
+      } catch (err) {
+        statusEl.textContent = `Error: ${err.message}`;
+        console.error(err);
+      }
     }
 
     client.on("user-published", async (user, mediaType) => {
       await client.subscribe(user, mediaType);
       if (mediaType === "audio") {
         user.audioTrack.play();
+        statusEl.textContent = "Call connected - two-way audio active";
       }
     });
 
+    client.on("user-unpublished", () => {
+      statusEl.textContent = "Other participant left the call";
+    });
+
+    client.on("user-left", () => {
+      statusEl.textContent = "Other participant left the call";
+    });
+
+    // Event listeners
+    muteBtn.addEventListener("click", toggleMute);
+    endCallBtn.addEventListener("click", leaveChannel);
+
+    // Start the call
     startCall();
+
+    // Handle window closing
+    window.addEventListener("beforeunload", leaveChannel);
   </script>
 </body>
 </html>
