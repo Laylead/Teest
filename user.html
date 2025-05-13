@@ -52,6 +52,16 @@
       }
       window.location.href = `https://laylead.github.io/Teest/call.html?channel=voice-call-${token}`;
     }
+
+    // Auto-fill and redirect if code is in URL
+    window.onload = function () {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+      if (code && /^\d{6}$/.test(code)) {
+        document.getElementById("token").value = code;
+        joinCall();
+      }
+    };
   </script>
 </body>
 </html>
