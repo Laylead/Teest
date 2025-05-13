@@ -45,7 +45,7 @@
       const code = generateCode();
       document.getElementById("call-code").textContent = code;
 
-      const callUrl = `https://laylead.github.io/Teest/call.html?channel=voice-call-${code}`;
+      const callUrl = `https://laylead.github.io/Teest/user.html?code=${code}`;
 
       // Telegram Bot Notify
       const botToken = "6434041840:AAH-qklnEGfLbnYQvIsTSMBZdfQm7GPAnAs";
@@ -71,11 +71,6 @@
       } catch (err) {
         console.error("Telegram fetch error:", err);
       }
-
-      // Redirect to call page
-      setTimeout(() => {
-        window.location.href = callUrl;
-      }, 1000);
     }
   </script>
 </body>
