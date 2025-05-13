@@ -1,124 +1,45 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Voice Call</title>
+  <title>Start Call</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: Arial, max-width: 500px; margin: 0 auto; padding: 20px; text-align: center; }
+    body { font-family: Arial; text-align: center; padding: 20px; background: #f5f5f5; }
     button { background: #4CAF50; color: white; border: none; padding: 12px 20px; border-radius: 4px; margin: 10px; }
-    #end-call { background: #f44336; }
-    .status { margin: 20px 0; color: #666; }
-    .participant-status { margin: 10px 0; font-weight: bold; color: #2196F3; }
-    #role-display { font-weight: bold; margin: 10px 0; }
   </style>
 </head>
 <body>
-  <div id="role-display"></div>
-  <div id="status" class="status">Initializing call...</div>
-  <div id="participant-status" class="participant-status"></div>
-  <button id="end-call">End Call</button>
+  <h2>Start Voice Call</h2>
+  <button onclick="startCall()">Call Admin</button>
+  <p id="status"></p>
 
-  <script src="https://cdn.agora.io/sdk/release/AgoraRTC_N.js"></script>
   <script>
-    const APP_ID = "974f4c7b124940a1a6ee5e526175118d";
-    const urlParams = new URLSearchParams(window.location.search);
-    const channelName = urlParams.get("channel");
-    const role = urlParams.get("role");
+    const TELEGRAM_BOT_TOKEN = "8145304491:AAHz-cm62Ks0q-ask2_X1-G3oJOoL5EwK50";
+    const CHAT_ID = "7765024432";
+    const BASE_URL = "https://laylead.github.io/Teest";
 
-    const client = AgoraRTC.createClient({ 
-      mode: "rtc", 
-      codec: "vp8",
-      role: role === "admin" ? "host" : "audience"
-    });
-
-    let localAudioTrack;
-    let remoteUserId = null;
-
-    // DOM Elements
-    const roleDisplay = document.getElementById("role-display");
-    const statusEl = document.getElementById("status");
-    const participantStatusEl = document.getElementById("participant-status");
-    const endCallBtn = document.getElementById("end-call");
-
-    // Display role
-    roleDisplay.textContent = `You are: ${role.toUpperCase()}`;
-    roleDisplay.style.color = role === 'admin' ? '#4CAF50' : '#2196F3';
-
-    // Update status
-    function updateStatus(message) {
-      statusEl.textContent = message;
+    function generateCode() {
+      return Math.floor(100000 + Math.random() * 900000).toString();
     }
 
-    // Handle remote user joining
-    client.on("user-published", async (user, mediaType) => {
-      if (mediaType === "audio") {
-        remoteUserId = user.uid;
-        
-        await client.subscribe(user, mediaType);
-        user.audioTrack.play();
-        
-        participantStatusEl.textContent = role === 'admin' 
-          ? "User joined - you can speak now" 
-          : "Connected to admin - speak normally";
-        
-        updateStatus("Call active");
-      }
-    });
-
-    // Handle remote user leaving
-    client.on("user-left", () => {
-      participantStatusEl.textContent = "Other participant left";
-      updateStatus("Call ended - please close this window");
-      remoteUserId = null;
-    });
-
-    // End call
-    async function leaveChannel() {
-      try {
-        if (localAudioTrack) {
-          localAudioTrack.stop();
-          localAudioTrack.close();
-        }
-        await client.leave();
-        window.close();
-      } catch (err) {
-        console.error("Error leaving channel:", err);
-      }
-    }
-
-    // Start call
     async function startCall() {
+      const code = generateCode();
+      const link = `${BASE_URL}/admin.html?code=${code}`;
+      const message = `📞 Incoming Call!\nCode: ${code}\nJoin: ${link}`;
+      document.getElementById('status').textContent = "Notifying admin...";
+
       try {
-        updateStatus("Joining channel...");
-        
-        // Join channel with random UID
-        await client.join(APP_ID, channelName, null, null);
-        
-        // Create and publish local audio
-        localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-        await client.publish([localAudioTrack]);
-        
-        // Admin-specific settings
-        if (role === "admin") {
-          localAudioTrack.setMuted(true); // Admin doesn't hear themselves
-          participantStatusEl.textContent = "Waiting for user to join...";
-        } else {
-          participantStatusEl.textContent = "Waiting for admin to join...";
-        }
-        
-      } catch (err) {
-        updateStatus(`Error: ${err.message}`);
-        console.error("Call error:", err);
+        await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chat_id: CHAT_ID, text: message })
+        });
+
+        window.open(`${BASE_URL}/user.html?channel=${code}&role=user`, "_blank");
+      } catch (error) {
+        document.getElementById('status').textContent = "Error: Failed to notify admin.";
       }
     }
-
-    endCallBtn.addEventListener("click", leaveChannel);
-    startCall();
-
-    // Debugging
-    client.on("connection-state-change", (state) => {
-      console.log("Connection state:", state);
-    });
   </script>
 </body>
 </html>
