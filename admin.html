@@ -4,7 +4,7 @@
   <title>Admin Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: Arial, max-width: 500px; margin: 0 auto; padding: 20px; text-align: center; }
+    body { font-family: Arial; max-width: 500px; margin: 0 auto; padding: 20px; text-align: center; }
     input { padding: 12px; width: 200px; text-align: center; letter-spacing: 3px; margin: 10px; }
     button { background: #4CAF50; color: white; border: none; padding: 12px 20px; border-radius: 4px; margin: 10px; }
   </style>
@@ -21,7 +21,7 @@
     function joinCall() {
       const code = document.getElementById("codeInput").value.trim();
       if (/^\d{6}$/.test(code)) {
-        window.open(`${BASE_URL}/call.html?channel=${code}&role=admin`, "_blank");
+        window.open(`${BASE_URL}/user.html?channel=${code}&role=admin`, "_blank");
       } else {
         document.getElementById("status").textContent = "Invalid code (6 digits required)";
       }
@@ -31,8 +31,9 @@
 
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has("code")) {
-      document.getElementById("codeInput").value = urlParams.get("code");
-      document.getElementById("status").textContent = "Call code loaded!";
+      const code = urlParams.get("code");
+      document.getElementById("codeInput").value = code;
+      document.getElementById("status").textContent = "Code loaded. Click to join.";
     }
   </script>
 </body>
