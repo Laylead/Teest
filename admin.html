@@ -16,14 +16,15 @@
   <p id="status"></p>
 
   <script>
-    const BASE_URL = "https://laylead.github.io/Teest"; // YOUR GITHUB LINK
+    // YOUR GITHUB LINK
+    const BASE_URL = "https://laylead.github.io/Teest";
 
     function joinCall() {
       const code = document.getElementById("codeInput").value.trim();
       if (/^\d{6}$/.test(code)) {
-        window.open(`${BASE_URL}/call.html?channel=${code}&role=admin`, "_blank"); // USED HERE
+        window.open(`${BASE_URL}/call.html?channel=${code}&role=admin`, "_blank");
       } else {
-        document.getElementById("status").textContent = "Invalid code!";
+        document.getElementById("status").textContent = "Invalid code (6 digits required)";
       }
     }
 
@@ -33,6 +34,7 @@
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has("code")) {
       document.getElementById("codeInput").value = urlParams.get("code");
+      document.getElementById("status").textContent = "Call code loaded!";
     }
   </script>
 </body>
