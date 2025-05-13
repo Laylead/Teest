@@ -16,7 +16,6 @@
   <p id="status"></p>
 
   <script>
-    // YOUR GITHUB LINK
     const BASE_URL = "https://laylead.github.io/Teest";
 
     function joinCall() {
@@ -30,7 +29,6 @@
 
     document.getElementById("joinBtn").addEventListener("click", joinCall);
 
-    // Auto-fill from URL
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has("code")) {
       document.getElementById("codeInput").value = urlParams.get("code");
