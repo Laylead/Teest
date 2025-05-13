@@ -1,39 +1,60 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Admin Dashboard</title>
+  <title>Admin – Start Call</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: Arial; max-width: 500px; margin: 0 auto; padding: 20px; text-align: center; }
-    input { padding: 12px; width: 200px; text-align: center; letter-spacing: 3px; margin: 10px; }
-    button { background: #4CAF50; color: white; border: none; padding: 12px 20px; border-radius: 4px; margin: 10px; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      text-align: center;
+      padding: 40px;
+    }
+    h2 {
+      margin-bottom: 20px;
+    }
+    .code-box {
+      font-size: 32px;
+      font-weight: bold;
+      color: #007bff;
+      margin: 20px 0;
+      letter-spacing: 4px;
+    }
+    button {
+      padding: 12px 24px;
+      font-size: 16px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
-  <h2>Admin Dashboard</h2>
-  <input type="text" id="codeInput" placeholder="Enter 6-digit code" maxlength="6">
-  <button id="joinBtn">Join Call</button>
-  <p id="status"></p>
+  <h2>Start a Voice Call</h2>
+  <div class="code-box" id="call-code">------</div>
+  <button onclick="startCall()">Start Call</button>
 
   <script>
-    const BASE_URL = "https://laylead.github.io/Teest";
-
-    function joinCall() {
-      const code = document.getElementById("codeInput").value.trim();
-      if (/^\d{6}$/.test(code)) {
-        window.open(`${BASE_URL}/user.html?channel=${code}&role=admin`, "_blank");
-      } else {
-        document.getElementById("status").textContent = "Invalid code (6 digits required)";
-      }
+    function generateCode() {
+      return Math.floor(100000 + Math.random() * 900000).toString();
     }
 
-    document.getElementById("joinBtn").addEventListener("click", joinCall);
+    function startCall() {
+      const code = generateCode();
+      document.getElementById("call-code").textContent = code;
 
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has("code")) {
-      const code = urlParams.get("code");
-      document.getElementById("codeInput").value = code;
-      document.getElementById("status").textContent = "Code loaded. Click to join.";
+      // Telegram Bot Notify (Optional)
+      const botToken = "6552206679:AAFgfqBqfPbzP-YXHLg-4EiPHfLZHdLbL9I";
+      const chatId = "6057671912";
+      const msg = `Call Token Generated: ${code}`;
+      fetch(`https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${msg}`);
+
+      // Redirect to call.html
+      setTimeout(() => {
+        window.location.href = `call.html?channel=voice-call-${code}`;
+      }, 1000);
     }
   </script>
 </body>
