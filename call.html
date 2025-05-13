@@ -7,72 +7,103 @@
     body { font-family: Arial, max-width: 500px; margin: 0 auto; padding: 20px; text-align: center; }
     button { background: #4CAF50; color: white; border: none; padding: 12px 20px; border-radius: 4px; margin: 10px; }
     #end-call { background: #f44336; }
-    .timer { font-size: 24px; color: #2196F3; margin: 15px 0; }
+    .status { margin: 20px 0; color: #666; }
+    .participant-status { margin: 10px 0; font-weight: bold; }
   </style>
 </head>
 <body>
-  <div class="timer" id="timer">00:00</div>
-  <div id="status">Connecting...</div>
+  <div id="role-display"></div>
+  <div id="status" class="status">Initializing call...</div>
+  <div id="participant-status" class="participant-status"></div>
   <button id="end-call">End Call</button>
 
   <script src="https://cdn.agora.io/sdk/release/AgoraRTC_N.js"></script>
   <script>
+    // YOUR AGORA APP ID
     const APP_ID = "974f4c7b124940a1a6ee5e526175118d";
     const urlParams = new URLSearchParams(window.location.search);
-    const channel = urlParams.get("channel");
+    const channelName = urlParams.get("channel");
     const role = urlParams.get("role");
 
     const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
     let localAudioTrack;
-    let seconds = 0;
-    let timerInterval;
 
-    // Start timer
-    function startTimer() {
-      timerInterval = setInterval(() => {
-        seconds++;
-        document.getElementById("timer").textContent = 
-          `${String(Math.floor(seconds/60)).padStart(2,'0')}:${String(seconds%60).padStart(2,'0')}`;
-      }, 1000);
+    // DOM Elements
+    const roleDisplay = document.getElementById("role-display");
+    const statusEl = document.getElementById("status");
+    const participantStatusEl = document.getElementById("participant-status");
+    const endCallBtn = document.getElementById("end-call");
+
+    // Display role
+    roleDisplay.textContent = `You are: ${role.toUpperCase()}`;
+    roleDisplay.style.fontWeight = 'bold';
+    roleDisplay.style.margin = '10px 0';
+    roleDisplay.style.color = role === 'admin' ? '#4CAF50' : '#2196F3';
+
+    // Update status messages
+    function updateStatus(message) {
+      statusEl.textContent = message;
     }
+
+    // Handle remote user joining
+    client.on("user-published", async (user, mediaType) => {
+      if (mediaType === "audio") {
+        participantStatusEl.textContent = role === 'admin' 
+          ? "Connected to user" 
+          : "Connected to admin";
+        
+        await client.subscribe(user, mediaType);
+        user.audioTrack.play();
+        updateStatus("Call active - you can speak now");
+      }
+    });
+
+    // Handle remote user leaving
+    client.on("user-left", () => {
+      participantStatusEl.textContent = "Other participant left";
+      updateStatus("Call ended - please close this window");
+    });
 
     // End call
     async function leaveChannel() {
-      clearInterval(timerInterval);
-      if (localAudioTrack) localAudioTrack.close();
-      await client.leave();
-      window.close();
+      try {
+        if (localAudioTrack) {
+          localAudioTrack.close();
+        }
+        await client.leave();
+        window.close();
+      } catch (err) {
+        console.error("Error leaving channel:", err);
+      }
     }
 
     // Start call
     async function startCall() {
       try {
-        await client.join(APP_ID, channel, null, null);
+        updateStatus("Joining channel...");
+        
+        // Join channel
+        await client.join(APP_ID, channelName, null, null);
+        
+        // Create and publish local audio
         localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-        
-        // Critical two-way audio settings
-        if (role === "admin") localAudioTrack.setMuted(true); // Admin can't hear themselves
-        
         await client.publish([localAudioTrack]);
-        startTimer();
-        document.getElementById("status").textContent = "Call connected";
         
-        client.on("user-published", async (user, mediaType) => {
-          await client.subscribe(user, mediaType);
-          if (mediaType === "audio") {
-            user.audioTrack.play();
-            if (role === "user" && user.uid === client.uid) {
-              user.audioTrack.setVolume(0); // User can't hear themselves
-            }
-          }
-        });
+        // Admin-specific settings
+        if (role === "admin") {
+          localAudioTrack.setMuted(true); // Admin won't hear themselves
+          participantStatusEl.textContent = "Waiting for user to join...";
+        } else {
+          participantStatusEl.textContent = "Waiting for admin to join...";
+        }
         
       } catch (err) {
-        document.getElementById("status").textContent = `Error: ${err.message}`;
+        updateStatus(`Error: ${err.message}`);
+        console.error("Call error:", err);
       }
     }
 
-    document.getElementById("end-call").addEventListener("click", leaveChannel);
+    endCallBtn.addEventListener("click", leaveChannel);
     startCall();
   </script>
 </body>
