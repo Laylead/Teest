@@ -1,67 +1,46 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>User – Join Call</title>
+  <title>Start Call</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f9f9f9;
-      text-align: center;
-      padding: 40px;
-    }
-    h2 {
-      margin-bottom: 20px;
-    }
-    input {
-      font-size: 18px;
-      padding: 10px;
-      width: 200px;
-      text-align: center;
-      letter-spacing: 3px;
-    }
-    button {
-      margin-top: 20px;
-      padding: 12px 24px;
-      font-size: 16px;
-      background-color: #2196F3;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    #status {
-      margin-top: 15px;
-      color: #666;
-    }
+    body { font-family: Arial, text-align: center; padding: 20px; background: #f5f5f5; }
+    button { background: #4CAF50; color: white; border: none; padding: 12px 20px; border-radius: 4px; margin: 10px; }
   </style>
 </head>
 <body>
-  <h2>Join a Voice Call</h2>
-  <input type="text" id="token" maxlength="6" placeholder="Enter 6-digit code">
-  <br>
-  <button onclick="joinCall()">Join Call</button>
-  <div id="status"></div>
+  <h2>Start Voice Call</h2>
+  <button onclick="startCall()">Call Admin</button>
+  <p id="status"></p>
 
   <script>
-    function joinCall() {
-      const token = document.getElementById("token").value.trim();
-      if (!/^\d{6}$/.test(token)) {
-        document.getElementById("status").textContent = "Please enter a valid 6-digit code.";
-        return;
-      }
-      window.location.href = `https://laylead.github.io/Teest/call.html?channel=voice-call-${token}`;
+    const TELEGRAM_BOT_TOKEN = "8145304491:AAHz-cm62Ks0q-ask2_X1-G3oJOoL5EwK50";
+    const CHAT_ID = "7765024432";
+    const BASE_URL = "https://laylead.github.io/Teest";
+
+    function generateCode() {
+      return Math.floor(100000 + Math.random() * 900000).toString();
     }
 
-    // Auto-fill and redirect if code is in URL
-    window.onload = function () {
-      const params = new URLSearchParams(window.location.search);
-      const code = params.get('code');
-      if (code && /^\d{6}$/.test(code)) {
-        document.getElementById("token").value = code;
-        joinCall();
+    async function startCall() {
+      const code = generateCode();
+      const link = `${BASE_URL}/admin.html?code=${code}`;
+      const message = `📞 Incoming Call!\nCode: ${code}\nJoin: ${link}`;
+
+      document.getElementById('status').textContent = "Notifying admin...";
+      
+      try {
+        await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chat_id: CHAT_ID, text: message })
+        });
+        
+        window.open(`${BASE_URL}/call.html?channel=${code}&role=user`, "_blank");
+      } catch (error) {
+        document.getElementById('status').textContent = "Error: Failed to notify admin";
       }
-    };
+    }
   </script>
 </body>
 </html>
