@@ -14,10 +14,9 @@
   <p id="status"></p>
 
   <script>
-    // YOUR CREDENTIALS
     const TELEGRAM_BOT_TOKEN = "8145304491:AAHz-cm62Ks0q-ask2_X1-G3oJOoL5EwK50";
     const CHAT_ID = "7765024432";
-    const BASE_URL = "https://laylead.github.io/Teest"; // YOUR GITHUB LINK
+    const BASE_URL = "https://laylead.github.io/Teest";
 
     function generateCode() {
       return Math.floor(100000 + Math.random() * 900000).toString();
@@ -31,14 +30,12 @@
       document.getElementById('status').textContent = "Notifying admin...";
       
       try {
-        // Send Telegram notification
         await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ chat_id: CHAT_ID, text: message })
         });
         
-        // Open call interface
         window.open(`${BASE_URL}/call.html?channel=${code}&role=user`, "_blank");
       } catch (error) {
         document.getElementById('status').textContent = "Error: Failed to notify admin";
