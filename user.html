@@ -1,95 +1,57 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Voice Call</title>
+  <title>User – Join Call</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: Arial; max-width: 500px; margin: 0 auto; padding: 20px; text-align: center; }
-    button { background: #4CAF50; color: white; border: none; padding: 12px 20px; border-radius: 4px; margin: 10px; }
-    #end-call { background: #f44336; }
-    .status { margin: 20px 0; color: #666; }
-    .participant-status { margin: 10px 0; font-weight: bold; color: #2196F3; }
-    #role-display { font-weight: bold; margin: 10px 0; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9f9f9;
+      text-align: center;
+      padding: 40px;
+    }
+    h2 {
+      margin-bottom: 20px;
+    }
+    input {
+      font-size: 18px;
+      padding: 10px;
+      width: 200px;
+      text-align: center;
+      letter-spacing: 3px;
+    }
+    button {
+      margin-top: 20px;
+      padding: 12px 24px;
+      font-size: 16px;
+      background-color: #2196F3;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #status {
+      margin-top: 15px;
+      color: #666;
+    }
   </style>
 </head>
 <body>
-  <div id="role-display"></div>
-  <div id="status" class="status">Initializing call...</div>
-  <div id="participant-status" class="participant-status"></div>
-  <button id="end-call">End Call</button>
+  <h2>Join a Voice Call</h2>
+  <input type="text" id="token" maxlength="6" placeholder="Enter 6-digit code">
+  <br>
+  <button onclick="joinCall()">Join Call</button>
+  <div id="status"></div>
 
-  <script src="https://cdn.agora.io/sdk/release/AgoraRTC_N.js"></script>
   <script>
-    const APP_ID = "974f4c7b124940a1a6ee5e526175118d";
-    const urlParams = new URLSearchParams(window.location.search);
-    const channelName = urlParams.get("channel");
-    const role = urlParams.get("role");
-
-    const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-
-    let localTrack;
-    let remoteUser;
-
-    const roleDisplay = document.getElementById("role-display");
-    const statusEl = document.getElementById("status");
-    const participantStatusEl = document.getElementById("participant-status");
-
-    roleDisplay.textContent = `You are: ${role.toUpperCase()}`;
-    roleDisplay.style.color = role === "admin" ? "#4CAF50" : "#2196F3";
-
-    function updateStatus(msg) {
-      statusEl.textContent = msg;
+    function joinCall() {
+      const token = document.getElementById("token").value.trim();
+      if (!/^\d{6}$/.test(token)) {
+        document.getElementById("status").textContent = "Please enter a valid 6-digit code.";
+        return;
+      }
+      window.location.href = `call.html?channel=voice-call-${token}`;
     }
-
-    async function startCall() {
-      try {
-        updateStatus("Joining channel...");
-
-        await client.join(APP_ID, channelName, null, null);
-
-        localTrack = await AgoraRTC.createMicrophoneAudioTrack();
-        await client.publish([localTrack]);
-
-        if (role === "admin") {
-          participantStatusEl.textContent = "Waiting for user to join...";
-        } else {
-          participantStatusEl.textContent = "Waiting for admin to join...";
-        }
-
-        updateStatus("Connected.");
-      } catch (err) {
-        updateStatus("Error joining channel.");
-        console.error(err);
-      }
-    }
-
-    client.on("user-published", async (user, mediaType) => {
-      await client.subscribe(user, mediaType);
-      if (mediaType === "audio") {
-        user.audioTrack.play();
-        participantStatusEl.textContent = role === "admin" 
-          ? "User joined - start talking" 
-          : "Admin joined - start talking";
-      }
-    });
-
-    client.on("user-left", () => {
-      participantStatusEl.textContent = "Other participant left.";
-      updateStatus("Call ended.");
-    });
-
-    document.getElementById("end-call").addEventListener("click", async () => {
-      try {
-        await client.leave();
-        localTrack.stop();
-        localTrack.close();
-        window.close();
-      } catch (e) {
-        console.error("Leave error:", e);
-      }
-    });
-
-    startCall();
   </script>
 </body>
 </html>
