@@ -8,14 +8,15 @@
     button { background: #4CAF50; color: white; border: none; padding: 12px 20px; border-radius: 4px; margin: 10px; }
     #end-call { background: #f44336; }
     .status { margin: 20px 0; color: #666; }
-    .participant-status { margin: 10px 0; font-weight: bold; color: #2196F3; }
-    #role-display { font-weight: bold; margin: 10px 0; }
+    .device-select { margin: 15px 0; }
   </style>
 </head>
 <body>
   <div id="role-display"></div>
+  <div class="device-select">
+    <select id="mic-select" style="padding: 8px;"></select>
+  </div>
   <div id="status" class="status">Initializing call...</div>
-  <div id="participant-status" class="participant-status"></div>
   <button id="end-call">End Call</button>
 
   <script src="https://cdn.agora.io/sdk/release/AgoraRTC_N.js"></script>
@@ -25,52 +26,94 @@
     const channelName = urlParams.get("channel");
     const role = urlParams.get("role");
 
-    const client = AgoraRTC.createClient({ 
-      mode: "rtc", 
-      codec: "vp8",
-      role: role === "admin" ? "host" : "audience"
-    });
-
+    const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
     let localAudioTrack;
-    let remoteUserId = null;
+    let microphoneIds = [];
 
     // DOM Elements
     const roleDisplay = document.getElementById("role-display");
     const statusEl = document.getElementById("status");
-    const participantStatusEl = document.getElementById("participant-status");
+    const micSelect = document.getElementById("mic-select");
     const endCallBtn = document.getElementById("end-call");
 
     // Display role
     roleDisplay.textContent = `You are: ${role.toUpperCase()}`;
     roleDisplay.style.color = role === 'admin' ? '#4CAF50' : '#2196F3';
 
-    // Update status
-    function updateStatus(message) {
-      statusEl.textContent = message;
+    // Get microphone devices
+    async function getMicrophones() {
+      try {
+        const devices = await AgoraRTC.getMicrophones();
+        microphoneIds = devices.map(device => device.deviceId);
+        
+        micSelect.innerHTML = devices.map(device => 
+          `<option value="${device.deviceId}">${device.label || 'Microphone'}</option>`
+        ).join('');
+        
+        return true;
+      } catch (err) {
+        console.error("Could not get microphones:", err);
+        statusEl.innerHTML = "Could not access microphone. <br>Please check permissions and refresh.";
+        return false;
+      }
     }
 
-    // Handle remote user joining
+    // Initialize microphone with error handling
+    async function initMicrophone(deviceId = null) {
+      try {
+        const config = { microphoneId: deviceId };
+        localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack(config);
+        
+        if (role === "admin") {
+          localAudioTrack.setMuted(true); // Admin doesn't hear themselves
+        }
+        
+        return true;
+      } catch (err) {
+        console.error("Microphone init error:", err);
+        statusEl.textContent = `Microphone error: ${err.message}`;
+        return false;
+      }
+    }
+
+    // Handle remote user audio
     client.on("user-published", async (user, mediaType) => {
       if (mediaType === "audio") {
-        remoteUserId = user.uid;
-        
         await client.subscribe(user, mediaType);
         user.audioTrack.play();
-        
-        participantStatusEl.textContent = role === 'admin' 
-          ? "User joined - you can speak now" 
-          : "Connected to admin - speak normally";
-        
-        updateStatus("Call active");
+        statusEl.textContent = "Call connected! Speak normally";
       }
     });
 
-    // Handle remote user leaving
-    client.on("user-left", () => {
-      participantStatusEl.textContent = "Other participant left";
-      updateStatus("Call ended - please close this window");
-      remoteUserId = null;
+    // Handle device changes
+    micSelect.addEventListener("change", async () => {
+      if (localAudioTrack) {
+        await localAudioTrack.setDevice(micSelect.value);
+      }
     });
+
+    // Start call
+    async function startCall() {
+      try {
+        // 1. Get microphone list
+        if (!await getMicrophones()) return;
+        
+        // 2. Initialize microphone
+        if (!await initMicrophone(microphoneIds[0])) return;
+        
+        // 3. Join channel
+        await client.join(APP_ID, channelName, null, null);
+        await client.publish([localAudioTrack]);
+        
+        statusEl.textContent = role === "admin" 
+          ? "Waiting for user to join..." 
+          : "Waiting for admin to join...";
+        
+      } catch (err) {
+        statusEl.textContent = `Connection error: ${err.message}`;
+        console.error("Call setup error:", err);
+      }
+    }
 
     // End call
     async function leaveChannel() {
@@ -82,43 +125,12 @@
         await client.leave();
         window.close();
       } catch (err) {
-        console.error("Error leaving channel:", err);
-      }
-    }
-
-    // Start call
-    async function startCall() {
-      try {
-        updateStatus("Joining channel...");
-        
-        // Join channel with random UID
-        await client.join(APP_ID, channelName, null, null);
-        
-        // Create and publish local audio
-        localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-        await client.publish([localAudioTrack]);
-        
-        // Admin-specific settings
-        if (role === "admin") {
-          localAudioTrack.setMuted(true); // Admin doesn't hear themselves
-          participantStatusEl.textContent = "Waiting for user to join...";
-        } else {
-          participantStatusEl.textContent = "Waiting for admin to join...";
-        }
-        
-      } catch (err) {
-        updateStatus(`Error: ${err.message}`);
-        console.error("Call error:", err);
+        console.error("Leave error:", err);
       }
     }
 
     endCallBtn.addEventListener("click", leaveChannel);
     startCall();
-
-    // Debugging
-    client.on("connection-state-change", (state) => {
-      console.log("Connection state:", state);
-    });
   </script>
 </body>
 </html>
