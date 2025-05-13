@@ -5,19 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body { font-family: Arial, max-width: 500px; margin: 0 auto; padding: 20px; text-align: center; }
-    button { background: #4CAF50; color: white; border: none; padding: 12px 20px; border-radius: 4px; margin: 10px; }
+    button { 
+      background: #4CAF50; color: white; border: none; padding: 12px 20px; 
+      border-radius: 4px; margin: 10px; font-size: 16px; 
+    }
     #end-call { background: #f44336; }
-    .status { margin: 20px 0; color: #666; }
-    .device-select { margin: 15px 0; }
+    #mute-btn { background: #ff9800; width: 100px; }
+    .status { margin: 20px 0; color: #666; font-size: 18px; }
+    #role-display { 
+      font-weight: bold; margin: 15px 0; padding: 8px; 
+      background: #f0f0f0; border-radius: 4px; 
+    }
   </style>
 </head>
 <body>
   <div id="role-display"></div>
-  <div class="device-select">
-    <select id="mic-select" style="padding: 8px;"></select>
-  </div>
   <div id="status" class="status">Initializing call...</div>
-  <button id="end-call">End Call</button>
+  <div>
+    <button id="mute-btn">Mute</button>
+    <button id="end-call">End Call</button>
+  </div>
 
   <script src="https://cdn.agora.io/sdk/release/AgoraRTC_N.js"></script>
   <script>
@@ -28,90 +35,71 @@
 
     const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
     let localAudioTrack;
-    let microphoneIds = [];
+    let isMuted = false;
+    let remoteUserConnected = false;
 
     // DOM Elements
     const roleDisplay = document.getElementById("role-display");
     const statusEl = document.getElementById("status");
-    const micSelect = document.getElementById("mic-select");
+    const muteBtn = document.getElementById("mute-btn");
     const endCallBtn = document.getElementById("end-call");
 
     // Display role
     roleDisplay.textContent = `You are: ${role.toUpperCase()}`;
     roleDisplay.style.color = role === 'admin' ? '#4CAF50' : '#2196F3';
 
-    // Get microphone devices
-    async function getMicrophones() {
-      try {
-        const devices = await AgoraRTC.getMicrophones();
-        microphoneIds = devices.map(device => device.deviceId);
-        
-        micSelect.innerHTML = devices.map(device => 
-          `<option value="${device.deviceId}">${device.label || 'Microphone'}</option>`
-        ).join('');
-        
-        return true;
-      } catch (err) {
-        console.error("Could not get microphones:", err);
-        statusEl.innerHTML = "Could not access microphone. <br>Please check permissions and refresh.";
-        return false;
-      }
+    // Mute toggle
+    function toggleMute() {
+      if (!localAudioTrack) return;
+      
+      isMuted = !isMuted;
+      localAudioTrack.setMuted(isMuted);
+      muteBtn.textContent = isMuted ? "Unmute" : "Mute";
+      muteBtn.style.background = isMuted ? "#9e9e9e" : "#ff9800";
     }
 
-    // Initialize microphone with error handling
-    async function initMicrophone(deviceId = null) {
-      try {
-        const config = { microphoneId: deviceId };
-        localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack(config);
-        
-        if (role === "admin") {
-          localAudioTrack.setMuted(true); // Admin doesn't hear themselves
-        }
-        
-        return true;
-      } catch (err) {
-        console.error("Microphone init error:", err);
-        statusEl.textContent = `Microphone error: ${err.message}`;
-        return false;
-      }
-    }
-
-    // Handle remote user audio
+    // Handle remote user
     client.on("user-published", async (user, mediaType) => {
       if (mediaType === "audio") {
+        remoteUserConnected = true;
+        
         await client.subscribe(user, mediaType);
-        user.audioTrack.play();
-        statusEl.textContent = "Call connected! Speak normally";
-      }
-    });
-
-    // Handle device changes
-    micSelect.addEventListener("change", async () => {
-      if (localAudioTrack) {
-        await localAudioTrack.setDevice(micSelect.value);
+        
+        // CRITICAL: Prevent self-audio playback
+        if (user.uid !== client.uid) {
+          user.audioTrack.play();
+          statusEl.textContent = "Call connected!";
+          
+          // Admin-specific: Mute local playback
+          if (role === "admin") {
+            localAudioTrack.setMuted(true); // Admin doesn't hear themselves
+          }
+        }
       }
     });
 
     // Start call
     async function startCall() {
       try {
-        // 1. Get microphone list
-        if (!await getMicrophones()) return;
-        
-        // 2. Initialize microphone
-        if (!await initMicrophone(microphoneIds[0])) return;
-        
-        // 3. Join channel
+        // Join channel
         await client.join(APP_ID, channelName, null, null);
+        
+        // Create microphone track
+        localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
         await client.publish([localAudioTrack]);
         
-        statusEl.textContent = role === "admin" 
-          ? "Waiting for user to join..." 
-          : "Waiting for admin to join...";
+        // User-specific: Mute self playback
+        if (role === "user") {
+          client.on("track-ended", () => {
+            localAudioTrack.setVolume(0); // User doesn't hear themselves
+          });
+        }
+        
+        statusEl.textContent = "Waiting for other participant...";
         
       } catch (err) {
-        statusEl.textContent = `Connection error: ${err.message}`;
-        console.error("Call setup error:", err);
+        statusEl.textContent = `Error: ${err.message}`;
+        console.error("Call error:", err);
       }
     }
 
@@ -129,7 +117,9 @@
       }
     }
 
-    endCallBtn.addEventListener("click", leaveChannel);
+    // Event listeners
+    muteBtn.addEventListener("click", toggleMute);
+    endCallBtn.addEventListener("click", leaveCall);
     startCall();
   </script>
 </body>
