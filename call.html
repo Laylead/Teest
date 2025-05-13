@@ -8,7 +8,8 @@
     button { background: #4CAF50; color: white; border: none; padding: 12px 20px; border-radius: 4px; margin: 10px; }
     #end-call { background: #f44336; }
     .status { margin: 20px 0; color: #666; }
-    .participant-status { margin: 10px 0; font-weight: bold; }
+    .participant-status { margin: 10px 0; font-weight: bold; color: #2196F3; }
+    #role-display { font-weight: bold; margin: 10px 0; }
   </style>
 </head>
 <body>
@@ -19,14 +20,19 @@
 
   <script src="https://cdn.agora.io/sdk/release/AgoraRTC_N.js"></script>
   <script>
-    // YOUR AGORA APP ID
     const APP_ID = "974f4c7b124940a1a6ee5e526175118d";
     const urlParams = new URLSearchParams(window.location.search);
     const channelName = urlParams.get("channel");
     const role = urlParams.get("role");
 
-    const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+    const client = AgoraRTC.createClient({ 
+      mode: "rtc", 
+      codec: "vp8",
+      role: role === "admin" ? "host" : "audience"
+    });
+
     let localAudioTrack;
+    let remoteUserId = null;
 
     // DOM Elements
     const roleDisplay = document.getElementById("role-display");
@@ -36,11 +42,9 @@
 
     // Display role
     roleDisplay.textContent = `You are: ${role.toUpperCase()}`;
-    roleDisplay.style.fontWeight = 'bold';
-    roleDisplay.style.margin = '10px 0';
     roleDisplay.style.color = role === 'admin' ? '#4CAF50' : '#2196F3';
 
-    // Update status messages
+    // Update status
     function updateStatus(message) {
       statusEl.textContent = message;
     }
@@ -48,13 +52,16 @@
     // Handle remote user joining
     client.on("user-published", async (user, mediaType) => {
       if (mediaType === "audio") {
-        participantStatusEl.textContent = role === 'admin' 
-          ? "Connected to user" 
-          : "Connected to admin";
+        remoteUserId = user.uid;
         
         await client.subscribe(user, mediaType);
         user.audioTrack.play();
-        updateStatus("Call active - you can speak now");
+        
+        participantStatusEl.textContent = role === 'admin' 
+          ? "User joined - you can speak now" 
+          : "Connected to admin - speak normally";
+        
+        updateStatus("Call active");
       }
     });
 
@@ -62,12 +69,14 @@
     client.on("user-left", () => {
       participantStatusEl.textContent = "Other participant left";
       updateStatus("Call ended - please close this window");
+      remoteUserId = null;
     });
 
     // End call
     async function leaveChannel() {
       try {
         if (localAudioTrack) {
+          localAudioTrack.stop();
           localAudioTrack.close();
         }
         await client.leave();
@@ -82,7 +91,7 @@
       try {
         updateStatus("Joining channel...");
         
-        // Join channel
+        // Join channel with random UID
         await client.join(APP_ID, channelName, null, null);
         
         // Create and publish local audio
@@ -91,7 +100,7 @@
         
         // Admin-specific settings
         if (role === "admin") {
-          localAudioTrack.setMuted(true); // Admin won't hear themselves
+          localAudioTrack.setMuted(true); // Admin doesn't hear themselves
           participantStatusEl.textContent = "Waiting for user to join...";
         } else {
           participantStatusEl.textContent = "Waiting for admin to join...";
@@ -105,6 +114,11 @@
 
     endCallBtn.addEventListener("click", leaveChannel);
     startCall();
+
+    // Debugging
+    client.on("connection-state-change", (state) => {
+      console.log("Connection state:", state);
+    });
   </script>
 </body>
 </html>
