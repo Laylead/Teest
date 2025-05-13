@@ -1,45 +1,116 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Start Call</title>
+  <title>Call Room</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: Arial; text-align: center; padding: 20px; background: #f5f5f5; }
-    button { background: #4CAF50; color: white; border: none; padding: 12px 20px; border-radius: 4px; margin: 10px; }
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #f9f9f9;
+      padding: 30px;
+    }
+    h2 {
+      margin-bottom: 20px;
+    }
+    #status {
+      margin: 20px 0;
+      font-size: 18px;
+      color: #444;
+    }
+    button {
+      padding: 12px 20px;
+      margin: 10px;
+      font-size: 16px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #mute-btn {
+      background-color: #4CAF50;
+      color: white;
+    }
+    #end-btn {
+      background-color: #f44336;
+      color: white;
+    }
   </style>
 </head>
 <body>
-  <h2>Start Voice Call</h2>
-  <button onclick="startCall()">Call Admin</button>
-  <p id="status"></p>
 
+  <h2>Voice Call Active</h2>
+  <div id="status">Initializing...</div>
+  <button id="mute-btn">Mute</button>
+  <button id="end-btn">End Call</button>
+
+  <script src="https://cdn.agora.io/sdk/release/AgoraRTC_N-4.19.0.js"></script>
   <script>
-    const TELEGRAM_BOT_TOKEN = "8145304491:AAHz-cm62Ks0q-ask2_X1-G3oJOoL5EwK50";
-    const CHAT_ID = "7765024432";
-    const BASE_URL = "https://laylead.github.io/Teest";
-
-    function generateCode() {
-      return Math.floor(100000 + Math.random() * 900000).toString();
-    }
+    const APP_ID = "974f4c7b124940a1a6ee5e526175118d";
+    const urlParams = new URLSearchParams(window.location.search);
+    const channelName = urlParams.get("channel");
+    const status = document.getElementById("status");
+    let client, localTrack, isMuted = false;
 
     async function startCall() {
-      const code = generateCode();
-      const link = `${BASE_URL}/admin.html?code=${code}`;
-      const message = `📞 Incoming Call!\nCode: ${code}\nJoin: ${link}`;
-      document.getElementById('status').textContent = "Notifying admin...";
+      if (!channelName) {
+        status.textContent = "No channel provided.";
+        return;
+      }
+
+      client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+
+      client.on("user-published", async (user, mediaType) => {
+        if (mediaType === "audio") {
+          await client.subscribe(user, mediaType);
+          user.audioTrack.play();
+          status.textContent = "Call connected - two-way audio";
+        }
+      });
+
+      client.on("user-left", () => {
+        status.textContent = "The other person left the call.";
+      });
 
       try {
-        await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chat_id: CHAT_ID, text: message })
-        });
+        status.textContent = "Joining channel...";
+        await client.join(APP_ID, channelName, null, null);
 
-        window.open(`${BASE_URL}/user.html?channel=${code}&role=user`, "_blank");
-      } catch (error) {
-        document.getElementById('status').textContent = "Error: Failed to notify admin.";
+        localTrack = await AgoraRTC.createMicrophoneAudioTrack();
+        await client.publish([localTrack]);
+
+        status.textContent = "Waiting for other participant...";
+      } catch (err) {
+        console.error("Join error", err);
+        status.textContent = "Connection error: " + err.message;
       }
     }
+
+    function toggleMute() {
+      if (!localTrack) return;
+      isMuted = !isMuted;
+      localTrack.setMuted(isMuted);
+      document.getElementById("mute-btn").textContent = isMuted ? "Unmute" : "Mute";
+      status.textContent = isMuted ? "Microphone muted" : "Microphone active";
+    }
+
+    async function endCall() {
+      try {
+        if (localTrack) localTrack.close();
+        if (client) await client.leave();
+        status.textContent = "Call ended.";
+        setTimeout(() => {
+          window.location.href = "https://laylead.github.io/Teest/";
+        }, 1000);
+      } catch (err) {
+        console.error("Leave error", err);
+        status.textContent = "Error ending call.";
+      }
+    }
+
+    document.getElementById("mute-btn").addEventListener("click", toggleMute);
+    document.getElementById("end-btn").addEventListener("click", endCall);
+
+    startCall();
   </script>
 </body>
 </html>
