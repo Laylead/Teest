@@ -41,19 +41,40 @@
       return Math.floor(100000 + Math.random() * 900000).toString();
     }
 
-    function startCall() {
+    async function startCall() {
       const code = generateCode();
       document.getElementById("call-code").textContent = code;
 
-      // Telegram Bot Notify (Optional)
-      const botToken = "6552206679:AAFgfqBqfPbzP-YXHLg-4EiPHfLZHdLbL9I";
-      const chatId = "6057671912";
-      const msg = `Call Token Generated: ${code}`;
-      fetch(`https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${msg}`);
+      const callUrl = `https://laylead.github.io/Teest/call.html?channel=voice-call-${code}`;
 
-      // Redirect to call.html
+      // Telegram Bot Notify
+      const botToken = "6434041840:AAH-qklnEGfLbnYQvIsTSMBZdfQm7GPAnAs";
+      const chatId = "6175181943";
+      const msg = `A user has started a voice call.\n\nCode: ${code}\nJoin now: ${callUrl}`;
+
+      try {
+        const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text: msg
+          })
+        });
+
+        const data = await response.json();
+        if (!data.ok) {
+          console.error("Telegram error:", data.description);
+        }
+      } catch (err) {
+        console.error("Telegram fetch error:", err);
+      }
+
+      // Redirect to call page
       setTimeout(() => {
-        window.location.href = `call.html?channel=voice-call-${code}`;
+        window.location.href = callUrl;
       }, 1000);
     }
   </script>
