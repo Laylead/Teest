@@ -20,91 +20,93 @@
 </head>
 <body>
   <div id="role-display"></div>
-  <div id="status" class="status">Initializing call...</div>
+  <div id="status" class="status">Connecting in 3 seconds...</div>
   <div>
     <button id="mute-btn">Mute</button>
     <button id="end-call">End Call</button>
   </div>
 
-  <script src="https://cdn.agora.io/sdk/release/AgoraRTC_N.js"></script>
+  <script src="https://cdn.agora.io/sdk/release/AgoraRTC_N-4.19.0.js"></script>
   <script>
+    // Configuration
     const APP_ID = "974f4c7b124940a1a6ee5e526175118d";
-    const urlParams = new URLSearchParams(window.location.search);
-    const channelName = urlParams.get("channel");
-    const role = urlParams.get("role");
-
+    const CHANNEL = new URLSearchParams(window.location.search).get("channel");
+    const ROLE = new URLSearchParams(window.location.search).get("role");
     const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+
+    // State
     let localAudioTrack;
     let isMuted = false;
-    let remoteUserConnected = false;
+    let remoteUserId = null;
 
     // DOM Elements
-    const roleDisplay = document.getElementById("role-display");
-    const statusEl = document.getElementById("status");
-    const muteBtn = document.getElementById("mute-btn");
-    const endCallBtn = document.getElementById("end-call");
+    const elements = {
+      role: document.getElementById("role-display"),
+      status: document.getElementById("status"),
+      muteBtn: document.getElementById("mute-btn"),
+      endBtn: document.getElementById("end-call")
+    };
 
-    // Display role
-    roleDisplay.textContent = `You are: ${role.toUpperCase()}`;
-    roleDisplay.style.color = role === 'admin' ? '#4CAF50' : '#2196F3';
-
-    // Mute toggle
-    function toggleMute() {
-      if (!localAudioTrack) return;
-      
-      isMuted = !isMuted;
-      localAudioTrack.setMuted(isMuted);
-      muteBtn.textContent = isMuted ? "Unmute" : "Mute";
-      muteBtn.style.background = isMuted ? "#9e9e9e" : "#ff9800";
-    }
-
-    // Handle remote user
-    client.on("user-published", async (user, mediaType) => {
-      if (mediaType === "audio") {
-        remoteUserConnected = true;
-        
-        await client.subscribe(user, mediaType);
-        
-        // CRITICAL: Prevent self-audio playback
-        if (user.uid !== client.uid) {
-          user.audioTrack.play();
-          statusEl.textContent = "Call connected!";
-          
-          // Admin-specific: Mute local playback
-          if (role === "admin") {
-            localAudioTrack.setMuted(true); // Admin doesn't hear themselves
-          }
-        }
-      }
-    });
-
-    // Start call
+    // Initialize call
     async function startCall() {
       try {
-        // Join channel
-        await client.join(APP_ID, channelName, null, null);
-        
-        // Create microphone track
-        localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-        await client.publish([localAudioTrack]);
-        
-        // User-specific: Mute self playback
-        if (role === "user") {
-          client.on("track-ended", () => {
-            localAudioTrack.setVolume(0); // User doesn't hear themselves
-          });
-        }
-        
-        statusEl.textContent = "Waiting for other participant...";
-        
+        // 1. Display role
+        elements.role.textContent = `ROLE: ${ROLE.toUpperCase()}`;
+        elements.role.style.color = ROLE === 'admin' ? '#4CAF50' : '#2196F3';
+
+        // 2. Join channel (with 3s delay for synchronization)
+        setTimeout(async () => {
+          await client.join(APP_ID, CHANNEL, null, null);
+          elements.status.textContent = "Channel joined - starting audio...";
+          
+          // 3. Create and publish audio track
+          localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+          await client.publish([localAudioTrack]);
+          
+          // 4. Admin-specific: Mute self-audio
+          if (ROLE === "admin") localAudioTrack.setMuted(true);
+          
+          elements.status.textContent = ROLE === "admin" 
+            ? "Ready - users will hear you when they join" 
+            : "Connected to admin! Speak normally";
+        }, 3000); // Small delay to ensure channel exists
+
       } catch (err) {
-        statusEl.textContent = `Error: ${err.message}`;
+        elements.status.textContent = `Error: ${err.message}`;
         console.error("Call error:", err);
       }
     }
 
+    // Handle remote participants
+    client.on("user-published", async (user, mediaType) => {
+      if (mediaType !== "audio") return;
+      
+      remoteUserId = user.uid;
+      await client.subscribe(user, mediaType);
+      
+      // User-specific: Block self-audio playback
+      if (ROLE === "user" && user.uid === client.uid) {
+        user.audioTrack.setVolume(0);
+      } else {
+        user.audioTrack.play();
+      }
+      
+      elements.status.textContent = ROLE === "admin" 
+        ? `User connected! You're now hearing them` 
+        : `Admin connected! You're now hearing them`;
+    });
+
+    // Mute control
+    function toggleMute() {
+      if (!localAudioTrack) return;
+      isMuted = !isMuted;
+      localAudioTrack.setMuted(isMuted);
+      elements.muteBtn.textContent = isMuted ? "Unmute" : "Mute";
+      elements.muteBtn.style.background = isMuted ? "#9e9e9e" : "#ff9800";
+    }
+
     // End call
-    async function leaveChannel() {
+    async function leaveCall() {
       try {
         if (localAudioTrack) {
           localAudioTrack.stop();
@@ -118,8 +120,10 @@
     }
 
     // Event listeners
-    muteBtn.addEventListener("click", toggleMute);
-    endCallBtn.addEventListener("click", leaveCall);
+    elements.muteBtn.addEventListener("click", toggleMute);
+    elements.endBtn.addEventListener("click", leaveCall);
+    
+    // Start the call
     startCall();
   </script>
 </body>
