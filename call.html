@@ -1,29 +1,26 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Admin – Start Call</title>
+  <title>Voice Call</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f4f4f4;
+      background: #f0f0f0;
       text-align: center;
       padding: 40px;
     }
     h2 {
       margin-bottom: 20px;
     }
-    .code-box {
-      font-size: 32px;
-      font-weight: bold;
-      color: #007bff;
+    #status {
       margin: 20px 0;
-      letter-spacing: 4px;
+      color: #666;
     }
     button {
       padding: 12px 24px;
       font-size: 16px;
-      background-color: #4CAF50;
+      background-color: #f44336;
       color: white;
       border: none;
       border-radius: 5px;
@@ -32,48 +29,62 @@
   </style>
 </head>
 <body>
-  <h2>Start a Voice Call</h2>
-  <div class="code-box" id="call-code">------</div>
-  <button onclick="startCall()">Start Call</button>
+  <h2>Voice Call</h2>
+  <div id="status">Initializing...</div>
+  <button onclick="leaveCall()">End Call</button>
 
+  <script src="https://cdn.agora.io/sdk/release/AgoraRTC_N-4.19.0.js"></script>
   <script>
-    function generateCode() {
-      return Math.floor(100000 + Math.random() * 900000).toString();
+    const APP_ID = "974f4c7b124940a1a6ee5e526175118d";
+    const urlParams = new URLSearchParams(window.location.search);
+    const channelName = urlParams.get("channel");
+    const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+    let localAudioTrack;
+
+    function updateStatus(message) {
+      document.getElementById("status").textContent = message;
     }
 
-    function startCall() {
-      const code = generateCode();
-      document.getElementById("call-code").textContent = code;
+    async function startCall() {
+      try {
+        updateStatus("Joining channel...");
+        await client.join(APP_ID, channelName, null, null);
+        localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+        await client.publish([localAudioTrack]);
+        updateStatus("Call active. Waiting for other participants...");
 
-      // Telegram Bot Notify
-      const botToken = "YOUR_BOT_TOKEN"; // Replace with your bot token
-      const chatId = "YOUR_CHAT_ID"; // Replace with your chat ID
-      const msg = `Call Token Generated: ${code}`;
-      fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text: msg
-        })
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (!data.ok) {
-          console.error("Telegram API error:", data);
+        client.on("user-published", async (user, mediaType) => {
+          if (mediaType === "audio") {
+            await client.subscribe(user, mediaType);
+            user.audioTrack.play();
+            updateStatus("Connected with another participant.");
+          }
+        });
+
+        client.on("user-left", () => {
+          updateStatus("Participant left the call.");
+        });
+      } catch (err) {
+        console.error("Call error:", err);
+        updateStatus("Error: " + err.message);
+      }
+    }
+
+    async function leaveCall() {
+      try {
+        if (localAudioTrack) {
+          localAudioTrack.stop();
+          localAudioTrack.close();
         }
-      })
-      .catch(error => {
-        console.error("Fetch error:", error);
-      });
-
-      // Redirect to call.html
-      setTimeout(() => {
-        window.location.href = `call.html?channel=voice-call-${code}`;
-      }, 1000);
+        await client.leave();
+        updateStatus("Call ended.");
+      } catch (err) {
+        console.error("Leave error:", err);
+        updateStatus("Error ending call.");
+      }
     }
+
+    startCall();
   </script>
 </body>
 </html>
