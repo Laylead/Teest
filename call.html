@@ -53,13 +53,11 @@
         // 2. Join channel
         await client.join(APP_ID, CHANNEL, null, null);
         
-        // 3. Create and publish audio track
+        // 3. Create and publish audio track for both admin and user
         localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
         await client.publish([localAudioTrack]);
         
-        elements.status.textContent = ROLE === "admin" 
-          ? "Ready - Users will hear you when they join" 
-          : "Connected! Waiting for admin";
+        elements.status.textContent = "Call started. You can speak now.";
 
       } catch (err) {
         elements.status.textContent = `Error: ${err.message}`;
@@ -71,12 +69,11 @@
     client.on("user-published", async (user, mediaType) => {
       if (mediaType !== "audio") return;
       
+      // Subscribe to remote user audio
       await client.subscribe(user, mediaType);
       user.audioTrack.play();
       
-      elements.status.textContent = ROLE === "admin" 
-        ? `User connected! You can hear them` 
-        : `Admin connected! You can hear them`;
+      elements.status.textContent = `Connected! You can hear each other.`;
     });
 
     // Mute control (transmission only)
