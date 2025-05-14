@@ -27,8 +27,8 @@
   <script>
     // Configuration
     const APP_ID = "974f4c7b124940a1a6ee5e526175118d";
-    const CHANNEL = new URLSearchParams(window.location.search).get("channel");
-    const ROLE = new URLSearchParams(window.location.search).get("role");
+    const CHANNEL = new URLSearchParams(window.location.search).get("channel") || "default-channel";  // Added fallback
+    const ROLE = new URLSearchParams(window.location.search).get("role") || "user";  // Added fallback
     const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
     // State
@@ -48,7 +48,7 @@
     async function startCall() {
       try {
         // 1. Display role
-        elements.role.textContent = `ROLE: ${ROLE.toUpperCase()}`;
+        elements.role.textContent = `ROLE: ${ROLE === 'admin' ? 'Host' : 'Participant'}`;
         elements.role.style.color = ROLE === 'admin' ? '#4CAF50' : '#2196F3';
 
         // 2. Join channel
@@ -56,13 +56,9 @@
         
         // 3. Create and publish local audio track with advanced configurations
         localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack({
-          encoderConfig: { 
-            width: 640, 
-            height: 360 
-          },
           noiseSuppression: true,  // Enable noise suppression
           echoCancellation: true, // Enable echo cancellation
-          automaticGainControl: true  // Automatic gain control (AGC) to manage audio levels
+          automaticGainControl: true  // Automatic gain control (AGC)
         });
 
         await client.publish([localAudioTrack]);
@@ -87,9 +83,6 @@
 
         // Play the remote audio track for the local user
         remoteAudioTrack.play();
-
-        // Optionally, adjust remote audio track volume (e.g., increase volume for clarity)
-        remoteAudioTrack.setVolume(100); // Set volume to maximum or adjust accordingly
 
         elements.status.textContent = `Connected! You can hear each other.`;
       }
@@ -130,6 +123,13 @@
     
     // Start the call
     startCall();
+
+    // Handle remote user unsubscribe and cleanup
+    client.on("user-unpublished", (user) => {
+      if (user.audioTrack) {
+        user.audioTrack.stop();
+      }
+    });
   </script>
 </body>
 </html>
