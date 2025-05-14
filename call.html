@@ -34,7 +34,6 @@
     // State
     let localAudioTrack = null;
     let isMuted = false;
-    let remoteUserId = null;
 
     // DOM Elements
     const elements = {
@@ -58,7 +57,6 @@
         localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
         await client.publish([localAudioTrack]);
         
-        // 4. Critical difference: No self-muting here
         elements.status.textContent = ROLE === "admin" 
           ? "Ready - Users will hear you when they join" 
           : "Connected! Waiting for admin";
@@ -73,16 +71,12 @@
     client.on("user-published", async (user, mediaType) => {
       if (mediaType !== "audio") return;
       
-      // Critical fix: Only subscribe to OTHER users
-      if (user.uid !== client.uid) {
-        remoteUserId = user.uid;
-        await client.subscribe(user, mediaType);
-        user.audioTrack.play();
-        
-        elements.status.textContent = ROLE === "admin" 
-          ? `User connected! You can hear them` 
-          : `Admin connected! You can hear them`;
-      }
+      await client.subscribe(user, mediaType);
+      user.audioTrack.play();
+      
+      elements.status.textContent = ROLE === "admin" 
+        ? `User connected! You can hear them` 
+        : `Admin connected! You can hear them`;
     });
 
     // Mute control (transmission only)
