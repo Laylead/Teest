@@ -33,6 +33,7 @@
 
     // State
     let localAudioTrack = null;
+    let remoteAudioTrack = null;
     let isMuted = false;
 
     // DOM Elements
@@ -53,12 +54,13 @@
         // 2. Join channel
         await client.join(APP_ID, CHANNEL, null, null);
         
-        // 3. Create and publish audio track for both admin and user
+        // 3. Create and publish local audio track for both admin and user
         localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
         await client.publish([localAudioTrack]);
-        
-        elements.status.textContent = "Call started. You can speak now.";
 
+        // 4. Display status
+        elements.status.textContent = "Call started. You can speak now.";
+        
       } catch (err) {
         elements.status.textContent = `Error: ${err.message}`;
         console.error("Call error:", err);
@@ -67,13 +69,18 @@
 
     // Handle remote participants
     client.on("user-published", async (user, mediaType) => {
-      if (mediaType !== "audio") return;
-      
-      // Subscribe to remote user audio
-      await client.subscribe(user, mediaType);
-      user.audioTrack.play();
-      
-      elements.status.textContent = `Connected! You can hear each other.`;
+      if (mediaType === "audio") {
+        // Subscribe to the remote audio track
+        await client.subscribe(user, mediaType);
+        
+        // Store the remote audio track
+        remoteAudioTrack = user.audioTrack;
+
+        // Play the remote audio track for the local user
+        remoteAudioTrack.play();
+        
+        elements.status.textContent = `Connected! You can hear each other.`;
+      }
     });
 
     // Mute control (transmission only)
@@ -91,6 +98,9 @@
         if (localAudioTrack) {
           localAudioTrack.stop();
           localAudioTrack.close();
+        }
+        if (remoteAudioTrack) {
+          remoteAudioTrack.stop();
         }
         await client.leave();
         window.close();
