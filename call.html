@@ -54,8 +54,17 @@
         // 2. Join channel
         await client.join(APP_ID, CHANNEL, null, null);
         
-        // 3. Create and publish local audio track for both admin and user
-        localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+        // 3. Create and publish local audio track with advanced configurations
+        localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack({
+          encoderConfig: { 
+            width: 640, 
+            height: 360 
+          },
+          noiseSuppression: true,  // Enable noise suppression
+          echoCancellation: true, // Enable echo cancellation
+          automaticGainControl: true  // Automatic gain control (AGC) to manage audio levels
+        });
+
         await client.publish([localAudioTrack]);
 
         // 4. Display status
@@ -78,7 +87,10 @@
 
         // Play the remote audio track for the local user
         remoteAudioTrack.play();
-        
+
+        // Optionally, adjust remote audio track volume (e.g., increase volume for clarity)
+        remoteAudioTrack.setVolume(100); // Set volume to maximum or adjust accordingly
+
         elements.status.textContent = `Connected! You can hear each other.`;
       }
     });
@@ -90,6 +102,9 @@
       localAudioTrack.setMuted(isMuted);
       elements.muteBtn.textContent = isMuted ? "Unmute" : "Mute";
       elements.muteBtn.style.background = isMuted ? "#9e9e9e" : "#ff9800";
+
+      // Add mute indication to the status message
+      elements.status.textContent = isMuted ? "You are muted" : "You can speak now";
     }
 
     // Cleanup
